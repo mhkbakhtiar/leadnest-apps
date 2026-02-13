@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import authService, { User } from '../services/authService';
@@ -28,7 +29,6 @@ const ProfileScreen = () => {
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      Alert.alert('Error', 'Gagal memuat data profil');
     } finally {
       setLoading(false);
     }
@@ -36,33 +36,28 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     Alert.alert(
-      'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar?',
+      'Logout',
+      'Are you sure you want to logout?',
       [
-        { text: 'Batal', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Logout', 
           style: 'destructive', 
           onPress: async () => {
             try {
               await authService.logout();
-              // Navigate to login screen
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
               });
             } catch (error) {
               console.error('Error logging out:', error);
-              Alert.alert('Error', 'Gagal logout');
+              Alert.alert('Error', 'Failed to logout');
             }
           }
         },
       ]
     );
-  };
-
-  const handleEditProfile = () => {
-    Alert.alert('Info', 'Fitur edit profile akan segera hadir');
   };
 
   const getInitials = (name: string) => {
@@ -76,55 +71,52 @@ const ProfileScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#312a7a" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>👤</Text>
-          <Text style={styles.emptyTitle}>Data Tidak Ditemukan</Text>
-          <Text style={styles.emptyText}>Silakan login kembali</Text>
+          <Text style={styles.emptyText}>No user data found</Text>
           <TouchableOpacity 
-            style={styles.loginButton}
+            style={styles.button}
             onPress={() => navigation.reset({
               index: 0,
               routes: [{ name: 'Login' }],
             })}
           >
-            <Text style={styles.loginButtonText}>Login</Text>
+            <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
+        {/* Profile Info */}
+        <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {getInitials(user.name)}
-              </Text>
-            </View>
+            <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
           </View>
           
           <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
           
           {user.roles && user.roles.length > 0 && (
             <View style={styles.rolesContainer}>
@@ -135,85 +127,63 @@ const ProfileScreen = () => {
               ))}
             </View>
           )}
-
-          <TouchableOpacity 
-            style={styles.editButton} 
-            onPress={handleEditProfile}
-            activeOpacity={0.8}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Info Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informasi Akun</Text>
-          
-          <View style={styles.infoItem}>
-            <Text style={styles.infoIcon}>📧</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{user.email}</Text>
-            </View>
+        {/* Info Cards */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{user.email}</Text>
           </View>
 
-          <View style={styles.infoItem}>
-            <Text style={styles.infoIcon}>📱</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Nomor Telepon</Text>
-              <Text style={styles.infoValue}>{user.phone || '-'}</Text>
+          {user.phone && (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={styles.infoValue}>{user.phone}</Text>
             </View>
-          </View>
+          )}
 
-          <View style={styles.infoItem}>
-            <Text style={styles.infoIcon}>🆔</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>User ID</Text>
-              <Text style={styles.infoValue}>#{user.id}</Text>
-            </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>User ID</Text>
+            <Text style={styles.infoValue}>#{user.id}</Text>
           </View>
         </View>
 
-        {/* Menu Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pengaturan</Text>
-          
+        {/* Menu Items */}
+        <View style={styles.menuSection}>
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Info', 'Fitur notifikasi akan segera hadir')}
+            onPress={() => Alert.alert('Info', 'Coming soon')}
           >
-            <Text style={styles.menuIcon}>🔔</Text>
-            <Text style={styles.menuText}>Notifikasi</Text>
+            <Text style={styles.menuText}>Settings</Text>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Info', 'Fitur keamanan akan segera hadir')}
+            onPress={() => Alert.alert('Info', 'Coming soon')}
           >
-            <Text style={styles.menuIcon}>🔒</Text>
-            <Text style={styles.menuText}>Keamanan</Text>
+            <Text style={styles.menuText}>Notifications</Text>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
-            onPress={() => Alert.alert('Info', 'Fitur bantuan akan segera hadir')}
+            onPress={() => Alert.alert('Info', 'Coming soon')}
           >
-            <Text style={styles.menuIcon}>❓</Text>
-            <Text style={styles.menuText}>Bantuan</Text>
+            <Text style={styles.menuText}>Help & Support</Text>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.menuItem} 
+            style={[styles.menuItem, styles.menuItemLast]} 
             activeOpacity={0.7}
-            onPress={() => Alert.alert('LeadNest CRM', 'Version 1.0.0\n\n© 2025 LeadNest CRM\nAll rights reserved.')}
+            onPress={() => Alert.alert('LeadNest CRM', 'Version 1.0.0\n\n© 2025 LeadNest CRM')}
           >
-            <Text style={styles.menuIcon}>ℹ️</Text>
-            <Text style={styles.menuText}>Tentang Aplikasi</Text>
+            <Text style={styles.menuText}>About</Text>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
         </View>
@@ -222,87 +192,85 @@ const ProfileScreen = () => {
         <TouchableOpacity 
           style={styles.logoutButton} 
           onPress={handleLogout}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+        >
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <View style={styles.version}>
+        <View style={styles.footer}>
           <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E0E0E0',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#312a7a',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
-  profileCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
+  profileSection: {
+    backgroundColor: '#FFF',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   avatarContainer: {
-    marginBottom: 16,
-  },
-  avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#312a7a',
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
   },
   avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFF',
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 12,
   },
   rolesContainer: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 20,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   roleBadge: {
-    backgroundColor: '#f0eef8',
+    backgroundColor: '#F0F0F0',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -310,98 +278,77 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#312a7a',
+    color: '#000',
   },
-  editButton: {
-    backgroundColor: '#312a7a',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+  infoSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  infoCard: {
+    backgroundColor: '#FFF',
     borderRadius: 8,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  infoIcon: {
-    fontSize: 24,
-    marginRight: 16,
-  },
-  infoContent: {
-    flex: 1,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   infoLabel: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   infoValue: {
     fontSize: 15,
-    color: '#333',
+    color: '#000',
     fontWeight: '500',
+  },
+  menuSection: {
+    backgroundColor: '#FFF',
+    marginTop: 16,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#E0E0E0',
   },
-  menuIcon: {
-    fontSize: 20,
-    marginRight: 16,
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuText: {
-    flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: '#000',
   },
   menuArrow: {
-    fontSize: 24,
-    color: '#ccc',
+    fontSize: 20,
+    color: '#999',
   },
   logoutButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 8,
+    borderRadius: 8,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#dc3545',
+    borderColor: '#DC3545',
   },
   logoutText: {
-    color: '#dc3545',
-    fontSize: 16,
+    color: '#DC3545',
+    fontSize: 15,
     fontWeight: '600',
   },
-  version: {
+  footer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 24,
   },
   versionText: {
     fontSize: 12,
@@ -413,31 +360,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 32,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
   emptyText: {
     fontSize: 14,
     color: '#666',
-    textAlign: 'center',
     marginBottom: 24,
   },
-  loginButton: {
-    backgroundColor: '#312a7a',
+  button: {
+    backgroundColor: '#000',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  buttonText: {
+    color: '#FFF',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

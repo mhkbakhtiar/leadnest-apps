@@ -1,80 +1,182 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import Svg, { Path, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { DashboardData } from '../services/dashboardService';
+
+const { width } = Dimensions.get('window');
 
 interface DashboardWidgetsProps {
   data: DashboardData;
-  onKelolakonsumen?: () => void;
-  onInputFollowup?: () => void;
+  onKonsumenPress?: (konsumenId: number) => void;
   onSchedulePress?: (scheduleId: number) => void;
 }
 
+const generateClosingTargetLabel = (startDateString: string) => {
+    if (!startDateString) return '';
+
+    const monthNames = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+    ];
+
+    const start = new Date(startDateString);
+    const end = new Date(start);
+    end.setMonth(start.getMonth() + 3); // rentang 4 bulan
+
+    const startMonth = monthNames[start.getMonth()];
+    const endMonth = monthNames[end.getMonth()];
+    const year = start.getFullYear();
+
+    return `${startMonth}–${endMonth} ${year}`;
+  };
+
 export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
   data,
-  onKelolakonsumen,
-  onInputFollowup,
+  onKonsumenPress,
   onSchedulePress,
 }) => {
   return (
-    <View style={styles.container}>
-      {/* Welcome Section */}
-      <View style={styles.welcomeSection}>
-        <Text style={styles.title}>Dashboard Sales</Text>
-        <Text style={styles.subtitle}>Hari ini: {data.current_date}</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header with Gradient */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.profileSection}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {data.user.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{data.user.name}</Text>
+              <Text style={styles.userPoints}>
+                Target bulan ini 🎯
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.bellIcon}>
+            <Text style={styles.bellEmoji}>🔔</Text>
+            {data.today_schedule && data.today_schedule.length > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifText}>{data.today_schedule.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* 🎯 Target Cards - Horizontal Scroll */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.targetCardsContainer}
+        >
+          {/* Closing Target Card */}
+          <View style={[styles.targetCard, styles.targetCardPrimary]}>
+            <View style={styles.targetHeader}>
+              <Text style={styles.targetLabel}>Target Closing ({data.closing_target.target} / Quartal)</Text>
+              <Text style={styles.targetEmoji}>🎯</Text>
+            </View>
+            <View style={styles.targetAmount}>
+              <Text style={styles.targetValue}>{data.closing_target.achieved}</Text>
+              <Text style={styles.targetMax}>/ {data.closing_target.target}</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${Math.min(data.closing_target.percentage, 100)}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {data.closing_target.percentage}% tercapai • {data.closing_target.period}
+            </Text>
+          </View>
+
+          {/* Leads Target Card */}
+          <View style={[styles.targetCard, styles.targetCardSecondary]}>
+            <View style={styles.targetHeader}>
+              <Text style={styles.targetLabel}>Target Leads ({data.leads_target.daily_target} / per hari)</Text>
+              <Text style={styles.targetEmoji}>👥</Text>
+            </View>
+            <View style={styles.targetAmount}>
+              <Text style={styles.targetValue}>{data.leads_target.achieved}</Text>
+              <Text style={styles.targetMax}>/ {data.leads_target.target}</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFillSecondary,
+                  { width: `${Math.min(data.leads_target.percentage, 100)}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {data.leads_target.percentage}% tercapai • {data.leads_target.period}
+            </Text>
+          </View>
+
+          {/* Follow-up Target Card */}
+          <View style={[styles.targetCard, styles.targetCardTertiary]}>
+            <View style={styles.targetHeader}>
+              <Text style={styles.targetLabel}>Target Follow-up ({data.followup_target.weekly_target } / per minggu)</Text>
+              <Text style={styles.targetEmoji}>📞</Text>
+            </View>
+            <View style={styles.targetAmount}>
+              <Text style={styles.targetValue}>{data.followup_target.achieved}</Text>
+              <Text style={styles.targetMax}>/ {data.followup_target.target}</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFillTertiary,
+                  { width: `${Math.min(data.followup_target.percentage, 100)}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {data.followup_target.percentage}% tercapai • {data.followup_target.period}
+            </Text>
+          </View>
+        </ScrollView>
       </View>
 
-      {/* Widget Grid - Top 4 Cards */}
-      <View style={styles.widgetGrid}>
-        {/* Target Sales */}
-        <View style={styles.widgetCard}>
-          <Text style={styles.widgetTitle}>Target Sales</Text>
-          <View style={styles.widgetCenter}>
-            <Text style={styles.widgetValueBlue}>
-              {data.sales_target.achieved} / {data.sales_target.target}
-            </Text>
-            <Text style={styles.widgetSubtext}>Bulan ini</Text>
+      <View style={styles.content}>
+        {/* Stats Cards */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Performa Minggu Ini</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Text style={styles.statEmoji}>📈</Text>
+              </View>
+              <Text style={styles.statValue}>{data.week_performance.followups}</Text>
+              <Text style={styles.statLabel}>Follow-up</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Text style={styles.statEmoji}>🏢</Text>
+              </View>
+              <Text style={styles.statValue}>{data.week_performance.site_visits}</Text>
+              <Text style={styles.statLabel}>Janji Cek Lokasi</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Text style={styles.statEmoji}>👥</Text>
+              </View>
+              <Text style={styles.statValue}>{data.week_performance.leads}</Text>
+              <Text style={styles.statLabel}>Konsumen Baru</Text>
+            </View>
           </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFillBlue,
-                { width: `${data.sales_target.percentage}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {data.sales_target.percentage}% tercapai
-          </Text>
         </View>
 
-        {/* FU Leads */}
-        <View style={styles.widgetCard}>
-          <Text style={styles.widgetTitle}>FU Leads</Text>
-          <View style={styles.widgetCenter}>
-            <Text style={styles.widgetValueGreen}>
-              {data.followup_target.achieved} / {data.followup_target.target}
-            </Text>
-            <Text style={styles.widgetSubtext}>Bulan ini</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFillGreen,
-                { width: `${data.followup_target.percentage}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            Target: {data.followup_target.daily_target}/hari
-          </Text>
-        </View>
-
-        {/* Status FU */}
-        <View style={styles.widgetCard}>
-          <Text style={styles.widgetTitle}>Status FU</Text>
-          <View style={styles.statusList}>
+        {/* Status Distribution */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Status Konsumen</Text>
+          <View style={styles.statusContainer}>
             {data.status_distribution.map((status, idx) => (
-              <View key={idx} style={styles.statusRow}>
+              <View key={idx} style={styles.statusItem}>
                 <View style={styles.statusLeft}>
                   <View
                     style={[
@@ -84,268 +186,419 @@ export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
                   />
                   <Text style={styles.statusName}>{status.name}</Text>
                 </View>
-                <Text style={styles.statusTotal}>{status.total}</Text>
+                <Text style={styles.statusValue}>{status.total}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Target Hari Ini */}
-        <View style={styles.widgetCard}>
-          <Text style={styles.widgetTitle}>Target Hari Ini</Text>
-          <View style={styles.widgetCenter}>
-            <Text style={styles.widgetValuePurple}>
-              {data.daily_customer_target.achieved} /{' '}
-              {data.daily_customer_target.target}
-            </Text>
-            <Text style={styles.widgetSubtext}>Data konsumen</Text>
+        {/* Today's Follow-up */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Follow-up Hari Ini</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAll}>Lihat Semua →</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFillPurple,
-                { width: `${data.daily_customer_target.percentage}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {data.daily_customer_target.remaining} lagi target tercapai
-          </Text>
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsGrid}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={onKelolakonsumen}
-          >
-            <View style={styles.actionIconBlue}>
-              <Text style={styles.actionEmoji}>👥</Text>
-            </View>
-            <Text style={styles.actionTitle}>Kelola Konsumen</Text>
-            <Text style={styles.actionSubtitle}>Lihat & edit data</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={onInputFollowup}>
-            <View style={styles.actionIconGreen}>
-              <Text style={styles.actionEmoji}>📞</Text>
-            </View>
-            <Text style={styles.actionTitle}>Input Follow-up</Text>
-            <Text style={styles.actionSubtitle}>Tambah catatan baru</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Today's Schedule */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Jadwal Hari Ini</Text>
-        {data.today_schedule.map((schedule) => (
-          <TouchableOpacity
-            key={schedule.id}
-            style={[
-              styles.scheduleCard,
-              { borderLeftColor: schedule.status_color },
-            ]}
-            onPress={() => onSchedulePress?.(schedule.id)}
-          >
-            <View style={styles.scheduleContent}>
-              <View style={styles.scheduleLeft}>
-                <Text style={styles.scheduleTitle}>
-                  Follow-up {schedule.konsumen_name}
-                </Text>
-                <Text style={styles.scheduleTime}>
-                  {schedule.type === 'call' ? '📞' : '🏢'}{' '}
-                  {schedule.scheduled_time} - Status: {schedule.status}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scheduleBadge,
-                  { backgroundColor: `${schedule.status_color}20` },
-                ]}
-              >
-                <Text
-                  style={[styles.scheduleBadgeText, { color: schedule.status_color }]}
+          {data.top_followup_needed && data.top_followup_needed.length > 0 ? (
+            <View style={styles.followupContainer}>
+              {data.top_followup_needed.slice(0, 3).map((konsumen) => (
+                <TouchableOpacity
+                  key={konsumen.id}
+                  style={styles.followupCard}
+                  onPress={() => onKonsumenPress?.(konsumen.id)}
                 >
-                  Mulai
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+                  <View style={styles.followupLeft}>
+                    <View style={styles.followupAvatar}>
+                      <Text style={styles.followupInitial}>
+                        {konsumen?.name
+                          ? konsumen.name.charAt(0).toUpperCase()
+                          : '?'}
+                      </Text>
 
-      {/* Performance Summary */}
-      <View style={styles.performanceCard}>
-        <Text style={styles.sectionTitle}>Performa Minggu Ini</Text>
-        <View style={styles.performanceGrid}>
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceValueBlue}>
-              {data.week_performance.followups}
-            </Text>
-            <Text style={styles.performanceLabel}>Follow-up</Text>
+                    </View>
+                    <View style={styles.followupInfo}>
+                      <Text style={styles.followupName}>{konsumen.name}</Text>
+                      <Text style={styles.followupDetail}>{konsumen.phone}</Text>
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.followupBadge,
+                      { backgroundColor: konsumen.status_color + '15' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.followupBadgeText,
+                        { color: konsumen.status_color },
+                      ]}
+                    >
+                      {konsumen.status}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyEmoji}>✅</Text>
+              <Text style={styles.emptyText}>Tidak ada follow-up hari ini</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Today's Schedule */}
+        {data.today_schedule && data.today_schedule.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Jadwal Hari Ini</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAll}>Lihat Semua →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.scheduleContainer}>
+              {data.today_schedule.slice(0, 3).map((schedule) => (
+                <TouchableOpacity
+                  key={schedule.id}
+                  style={styles.scheduleCard}
+                  onPress={() => onSchedulePress?.(schedule.id)}
+                >
+                  <View
+                    style={[
+                      styles.scheduleTime,
+                      { backgroundColor: schedule.status_color + '15' },
+                    ]}
+                  >
+                    <Text style={[styles.scheduleTimeText, { color: schedule.status_color }]}>
+                      {schedule.scheduled_time.split(' ')[0]}
+                    </Text>
+                  </View>
+                  <View style={styles.scheduleContent}>
+                    <Text style={styles.scheduleName}>{schedule.konsumen_name}</Text>
+                    <Text style={styles.scheduleType}>
+                      {schedule.type === 'call' ? '📞 Call' : '🏢 Site Visit'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceValueGreen}>
-              {data.week_performance.site_visits}
-            </Text>
-            <Text style={styles.performanceLabel}>Cek Lokasi</Text>
-          </View>
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceValuePurple}>
-              {data.week_performance.closings}
-            </Text>
-            <Text style={styles.performanceLabel}>Closing</Text>
+        )}
+
+        {/* Recent Activities */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Aktivitas Terbaru</Text>
+          <View style={styles.activityContainer}>
+            {data.recent_activities.slice(0, 4).map((activity) => (
+              <View key={activity.id} style={styles.activityCard}>
+                <View
+                  style={[
+                    styles.activityIcon,
+                    {
+                      backgroundColor:
+                        activity.type === 'closing'
+                          ? '#10B98115'
+                          : activity.type === 'new_customer'
+                          ? '#3B82F615'
+                          : '#8B5CF615',
+                    },
+                  ]}
+                >
+                  <Text style={styles.activityEmoji}>
+                    {activity.type === 'closing'
+                      ? '🎉'
+                      : activity.type === 'new_customer'
+                      ? '👤'
+                      : '📝'}
+                  </Text>
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={styles.activityTime}>{activity.time_ago}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       </View>
 
-      {/* Recent Activities */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Aktivitas Terbaru</Text>
-        {data.recent_activities.map((activity) => (
-          <View key={activity.id} style={styles.activityCard}>
-            <View
-              style={[
-                styles.activityIcon,
-                { backgroundColor: `${activity.status_color}20` },
-              ]}
-            >
-              <Text style={styles.activityEmoji}>
-                {activity.type === 'closing' ? '✓' : '+'}
-              </Text>
-            </View>
-            <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>{activity.title}</Text>
-              <Text style={styles.activityDescription}>
-                {activity.description} • {activity.time_ago}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.activityBadge,
-                { backgroundColor: `${activity.status_color}20` },
-              ]}
-            >
-              <Text
-                style={[styles.activityBadgeText, { color: activity.status_color }]}
-              >
-                {activity.status}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </View>
+      <View style={styles.bottomSpace} />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 80,
-    backgroundColor: '#FFFFFF',
+    flex: 1,
+    backgroundColor: '#F5F7FA',
   },
-  welcomeSection: {
-    marginBottom: 24,
+  header: {
+    backgroundColor: '#165044',
+    paddingTop: 16,
+    paddingBottom: 24,
+    // borderBottomLeftRadius: 24,
+    // borderBottomRightRadius: 24,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  widgetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 24,
-  },
-  widgetCard: {
-    width: '47%',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  widgetTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 12,
-  },
-  widgetCenter: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  widgetValueBlue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#3B82F6',
-  },
-  widgetValueGreen: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#10B981',
-  },
-  widgetValuePurple: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-  },
-  widgetSubtext: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFillBlue: {
-    height: '100%',
-    backgroundColor: '#3B82F6',
-    borderRadius: 4,
-  },
-  progressFillGreen: {
-    height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 4,
-  },
-  progressFillPurple: {
-    height: '100%',
-    backgroundColor: '#8B5CF6',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 11,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  statusList: {
-    marginTop: 8,
-  },
-  statusRow: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  userInfo: {
+    justifyContent: 'center',
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  userPoints: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  bellIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  bellEmoji: {
+    fontSize: 20,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // 🎯 Target Cards Styles
+  targetCardsContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  targetCard: {
+    width: width * 0.7,
+    padding: 20,
+    borderRadius: 16,
+    marginRight: 12,
+    
+  },
+  targetCardPrimary: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  targetCardSecondary: {
+    backgroundColor: 'rgba(59,130,246,0.15)',
+  },
+  targetCardTertiary: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
+  },
+  targetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  targetLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  targetEmoji: {
+    fontSize: 20,
+  },
+  targetAmount: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  targetValue: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginRight: 8,
+  },
+  targetMax: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
     marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#D4AA00',
+    borderRadius: 3,
+  },
+  progressFillSecondary: {
+    height: '100%',
+    backgroundColor: '#3B82F6',
+    borderRadius: 3,
+  },
+  progressFillTertiary: {
+    height: '100%',
+    backgroundColor: '#8B5CF6',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  quickActionsContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  quickActionsScroll: {
+    paddingHorizontal: 16,
+  },
+  quickAction: {
+    alignItems: 'center',
+    marginRight: 20,
+    width: 70,
+  },
+  quickActionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickActionEmoji: {
+    fontSize: 24,
+  },
+  quickActionLabel: {
+    fontSize: 11,
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  content: {
+    padding: 16,
+  },
+  statsSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '30%',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8F9FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statEmoji: {
+    fontSize: 24,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  seeAll: {
+    fontSize: 13,
+    color: '#165044',
+    fontWeight: '600',
+  },
+  statusContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   statusLeft: {
     flexDirection: 'row',
@@ -355,186 +608,180 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 8,
+    marginRight: 12,
   },
   statusName: {
-    fontSize: 12,
-    color: '#374151',
-  },
-  statusTotal: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  actionIconBlue: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionIconGreen: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionEmoji: {
-    fontSize: 24,
-  },
-  actionTitle: {
     fontSize: 14,
+    color: '#374151',
     fontWeight: '500',
-    color: '#1F2937',
-    textAlign: 'center',
   },
-  actionSubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 4,
+  statusValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
-  scheduleCard: {
+  followupContainer: {
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderLeftWidth: 4,
-    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  scheduleContent: {
+  followupCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  scheduleLeft: {
+  followupLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  scheduleTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
+  followupAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0E7FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  scheduleTime: {
-    fontSize: 12,
+  followupInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#165044',
+  },
+  followupInfo: {
+    flex: 1,
+  },
+  followupName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 3,
+  },
+  followupDetail: {
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
   },
-  scheduleBadge: {
+  followupBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-  },
-  scheduleBadgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  performanceCard: {
-    backgroundColor: '#F3F4F6',
-    padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
   },
-  performanceGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  performanceItem: {
-    alignItems: 'center',
-  },
-  performanceValueBlue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3B82F6',
-  },
-  performanceValueGreen: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#10B981',
-  },
-  performanceValuePurple: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-  },
-  performanceLabel: {
+  followupBadgeText: {
     fontSize: 11,
+    fontWeight: '700',
+  },
+  scheduleContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  scheduleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  scheduleTime: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  scheduleTimeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  scheduleContent: {
+    flex: 1,
+  },
+  scheduleName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 3,
+  },
+  scheduleType: {
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
+  },
+  activityContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   activityCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   activityIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   activityEmoji: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 20,
   },
   activityContent: {
     flex: 1,
+    paddingTop: 2,
   },
   activityTitle: {
     fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
     fontWeight: '500',
-    color: '#1F2937',
   },
-  activityDescription: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 4,
+  activityTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
-  activityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  activityBadgeText: {
-    fontSize: 11,
-    fontWeight: '500',
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  bottomSpace: {
+    height: 100,
   },
 });
 

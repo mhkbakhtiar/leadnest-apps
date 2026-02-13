@@ -5,6 +5,8 @@ import DashboardScreen from '../screens/DashboardScreen';
 import KonsumenScreen from '../screens/KonsumenScreen';
 import ReportScreen from '../screens/ReportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ScheduleScreen from '../screens/ScheduleScreen';
+import NotFoundScreen from '../screens/NotFoundScreen';
 import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
@@ -14,7 +16,7 @@ const MainTabNavigator = () => {
 
   const renderScreen = () => {
     switch (activeTab) {
-      case 'Dashboard':
+      case 'Home':
         return <DashboardScreen />;
       case 'Konsumen':
         return <KonsumenScreen />;
@@ -22,8 +24,10 @@ const MainTabNavigator = () => {
         return <ReportScreen />;
       case 'Profile':
         return <ProfileScreen />;
+      case 'Jadwal':
+        return <ScheduleScreen />;
       default:
-        return <DashboardScreen />;
+        return <NotFoundScreen />;
     }
   };
 

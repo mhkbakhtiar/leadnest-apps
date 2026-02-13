@@ -1,230 +1,469 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  Dimensions,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { PieChart, BarChart } from 'react-native-chart-kit';
+import reportService, { DashboardReport } from '../services/reportService';
 
-const ReportScreen = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('Bulan Ini');
+const { width } = Dimensions.get('window');
+const chartWidth = width - 32;
 
-  const periods = ['Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Tahun Ini'];
+const ReportScreen: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardReport | null>(null);
 
-  // Dummy data - nanti bisa diganti dengan data real dari API
-  const reportData = {
-    totalRevenue: 15750000,
-    totalTransactions: 48,
-    totalCustomers: 32,
-    avgTransaction: 328125,
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const data = await reportService.getDashboard();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const topProducts = [
-    { name: 'Produk A', sales: 25, revenue: 7500000 },
-    { name: 'Produk B', sales: 18, revenue: 5400000 },
-    { name: 'Produk C', sales: 12, revenue: 2850000 },
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setRefreshing(false);
+  };
+
+  const chartConfig = {
+    backgroundColor: '#ffffff',
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: '',
+      stroke: '#e3e3e3',
+      strokeWidth: 1,
+    },
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000" />
+          <Text style={styles.loadingText}>Loading reports...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>No data available</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const { konsumen, followups } = dashboardData;
+
+  // Prepare Konsumen Pie Chart Data
+  const konsumenStatusData = [
+    { name: 'Cold', count: konsumen.by_latest_status.cold, color: '#9E9E9E' },
+    { name: 'Warm', count: konsumen.by_latest_status.warm, color: '#FF9800' },
+    { name: 'Hot', count: konsumen.by_latest_status.hot, color: '#F44336' },
+    { name: 'Closing', count: konsumen.by_latest_status.closing, color: '#4CAF50' },
+    { name: 'Cancel', count: konsumen.by_latest_status.cancel, color: '#000000' },
   ];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const konsumenPieData = konsumenStatusData
+    .filter(item => item.count > 0)
+    .map(item => ({
+      name: item.name,
+      population: item.count,
+      color: item.color,
+      legendFontColor: '#333',
+      legendFontSize: 12,
+    }));
+
+  // Prepare Followup Bar Chart Data
+  const followupStatusData = [
+    { name: 'Cold', count: followups.by_status.cold },
+    { name: 'Warm', count: followups.by_status.warm },
+    { name: 'Hot', count: followups.by_status.hot },
+    { name: 'Closing', count: followups.by_status.closing },
+    { name: 'Cancel', count: followups.by_status.cancel },
+  ];
+
+  const followupBarData = {
+    labels: followupStatusData.map(item => item.name),
+    datasets: [
+      {
+        data: followupStatusData.map(item => Math.max(item.count, 0)),
+      },
+    ],
   };
 
+  // Status Distribution Data
+  const total = konsumen.total;
+  const statusStats = [
+    {
+      label: 'Cold',
+      count: konsumen.by_latest_status.cold,
+      percentage: total > 0 ? ((konsumen.by_latest_status.cold / total) * 100).toFixed(1) : '0',
+      color: '#9E9E9E',
+    },
+    {
+      label: 'Warm',
+      count: konsumen.by_latest_status.warm,
+      percentage: total > 0 ? ((konsumen.by_latest_status.warm / total) * 100).toFixed(1) : '0',
+      color: '#FF9800',
+    },
+    {
+      label: 'Hot',
+      count: konsumen.by_latest_status.hot,
+      percentage: total > 0 ? ((konsumen.by_latest_status.hot / total) * 100).toFixed(1) : '0',
+      color: '#F44336',
+    },
+    {
+      label: 'Closing',
+      count: konsumen.by_latest_status.closing,
+      percentage: total > 0 ? ((konsumen.by_latest_status.closing / total) * 100).toFixed(1) : '0',
+      color: '#4CAF50',
+    },
+    {
+      label: 'Cancel',
+      count: konsumen.by_latest_status.cancel,
+      percentage: total > 0 ? ((konsumen.by_latest_status.cancel / total) * 100).toFixed(1) : '0',
+      color: '#000000',
+    },
+  ];
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Laporan</Text>
-        <Text style={styles.headerSubtitle}>Analisis performa bisnis Anda</Text>
+        <Text style={styles.headerTitle}>Reports</Text>
+        <Text style={styles.headerSubtitle}>Performance Overview</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Period Selector */}
-        <View style={styles.periodContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {periods.map((period) => (
-              <TouchableOpacity
-                key={period}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period && styles.periodButtonActive,
-                ]}
-                onPress={() => setSelectedPeriod(period)}
-                activeOpacity={0.7}>
-                <Text
-                  style={[
-                    styles.periodText,
-                    selectedPeriod === period && styles.periodTextActive,
-                  ]}>
-                  {period}
-                </Text>
-              </TouchableOpacity>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <View style={styles.content}>
+          {/* Konsumen Summary */}
+          <Text style={styles.sectionTitle}>Konsumen Summary</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statValue}>{konsumen.total}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>This Month</Text>
+              <Text style={styles.statValue}>{konsumen.this_month}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Growth</Text>
+              <Text style={[styles.statValue, { color: konsumen.growth >= 0 ? '#4CAF50' : '#F44336' }]}>
+                {konsumen.growth > 0 ? '+' : ''}{konsumen.growth}%
+              </Text>
+            </View>
+          </View>
+
+          {/* Konsumen by Status - Pie Chart */}
+          <Text style={styles.sectionTitle}>Konsumen by Status</Text>
+          {konsumenPieData.length > 0 ? (
+            <View style={styles.chartContainer}>
+              <PieChart
+                data={konsumenPieData}
+                width={chartWidth}
+                height={220}
+                chartConfig={chartConfig}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                absolute
+              />
+            </View>
+          ) : (
+            <View style={styles.chartContainer}>
+              <Text style={styles.noDataText}>No data available</Text>
+            </View>
+          )}
+
+          {/* Status List */}
+          <View style={styles.statusList}>
+            {konsumenStatusData.map((item, index) => (
+              <View key={index} style={styles.statusItem}>
+                <View style={[styles.statusDot, { backgroundColor: item.color }]} />
+                <Text style={styles.statusLabel}>{item.name}</Text>
+                <Text style={styles.statusValue}>{item.count}</Text>
+              </View>
             ))}
-          </ScrollView>
-        </View>
+          </View>
 
-        {/* Summary Cards */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryIcon}>💰</Text>
-            <Text style={styles.summaryLabel}>Total Pendapatan</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(reportData.totalRevenue)}
-            </Text>
-            <View style={styles.changeContainer}>
-              <Text style={styles.changePositive}>↑ 12.5%</Text>
-              <Text style={styles.changeText}>vs periode sebelumnya</Text>
+          {/* Followup Summary */}
+          <Text style={styles.sectionTitle}>Followup Summary</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statValue}>{followups.total}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>This Month</Text>
+              <Text style={styles.statValue}>{followups.this_month}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Upcoming</Text>
+              <Text style={styles.statValue}>{followups.upcoming}</Text>
             </View>
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.miniCard, { backgroundColor: '#e3f2fd' }]}>
-              <Text style={styles.miniIcon}>🛒</Text>
-              <Text style={styles.miniValue}>{reportData.totalTransactions}</Text>
-              <Text style={styles.miniLabel}>Transaksi</Text>
-            </View>
-
-            <View style={[styles.miniCard, { backgroundColor: '#f3e5f5' }]}>
-              <Text style={styles.miniIcon}>👥</Text>
-              <Text style={styles.miniValue}>{reportData.totalCustomers}</Text>
-              <Text style={styles.miniLabel}>Konsumen</Text>
-            </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>📅 Upcoming Visits: {followups.upcoming_visits}</Text>
           </View>
 
-          <View style={[styles.summaryCard, { backgroundColor: '#e8f5e9' }]}>
-            <Text style={styles.summaryIcon}>📊</Text>
-            <Text style={styles.summaryLabel}>Rata-rata Transaksi</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(reportData.avgTransaction)}
-            </Text>
+          {/* Followups by Status - Bar Chart */}
+          <Text style={styles.sectionTitle}>Followups by Status</Text>
+          <View style={styles.chartContainer}>
+            <BarChart
+              data={followupBarData}
+              width={chartWidth}
+              height={220}
+              chartConfig={chartConfig}
+              verticalLabelRotation={0}
+              fromZero
+              showValuesOnTopOfBars
+              yAxisLabel=""
+              yAxisSuffix=""
+              style={styles.chart}
+            />
           </View>
-        </View>
 
-        {/* Top Products */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Produk Terlaris</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>Lihat Semua ›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {topProducts.map((product, index) => (
-            <View key={index} style={styles.productItem}>
-              <View style={styles.productRank}>
-                <Text style={styles.rankNumber}>{index + 1}</Text>
+          {/* Status Distribution with Progress Bars */}
+          <Text style={styles.sectionTitle}>Status Distribution</Text>
+          {statusStats.map((item, index) => (
+            <View key={index} style={styles.progressCard}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>{item.label}</Text>
+                <Text style={styles.progressCount}>{item.count}</Text>
               </View>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productSales}>{product.sales} terjual</Text>
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${item.percentage}%` as any,
+                      backgroundColor: item.color,
+                    },
+                  ]}
+                />
               </View>
-              <View style={styles.productRevenue}>
-                <Text style={styles.productAmount}>
-                  {formatCurrency(product.revenue)}
-                </Text>
-              </View>
+              <Text style={styles.progressPercentage}>{item.percentage}%</Text>
             </View>
           ))}
-        </View>
 
-        {/* Chart Placeholder */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Grafik Penjualan</Text>
-          <View style={styles.chartPlaceholder}>
-            <Text style={styles.chartIcon}>📈</Text>
-            <Text style={styles.chartText}>Grafik akan ditampilkan di sini</Text>
-            <Text style={styles.chartSubtext}>
-              Gunakan library seperti react-native-chart-kit untuk visualisasi data
-            </Text>
+          {/* Total Summary Card */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>Total Leads</Text>
+            <Text style={styles.summaryValue}>{konsumen.total}</Text>
           </View>
         </View>
-
-        {/* Export Section */}
-        <View style={styles.exportSection}>
-          <TouchableOpacity style={styles.exportButton} activeOpacity={0.8}>
-            <Text style={styles.exportIcon}>📥</Text>
-            <Text style={styles.exportText}>Export ke PDF</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.exportButton} activeOpacity={0.8}>
-            <Text style={styles.exportIcon}>📊</Text>
-            <Text style={styles.exportText}>Export ke Excel</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.bottomSpace} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
   },
   header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E0E0E0',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#312a7a',
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    marginTop: 4,
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  periodContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingLeft: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+  content: {
+    padding: 16,
   },
-  periodButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-    marginRight: 8,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12,
+    marginTop: 16,
   },
-  periodButtonActive: {
-    backgroundColor: '#312a7a',
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
   },
-  periodText: {
-    fontSize: 14,
+  statCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 16,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  statLabel: {
+    fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    marginBottom: 8,
   },
-  periodTextActive: {
-    color: '#fff',
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
   },
-  summaryContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+  chartContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    alignItems: 'center',
+  },
+  chart: {
+    borderRadius: 8,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#999',
+    padding: 20,
+  },
+  statusList: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  statusLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  statusValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  infoCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  progressCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  progressCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'right',
   },
   summaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
     padding: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  summaryIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginTop: 8,
+    marginBottom: 16,
   },
   summaryLabel: {
     fontSize: 13,
@@ -232,170 +471,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#312a7a',
-    marginBottom: 8,
-  },
-  changeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  changePositive: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4caf50',
-  },
-  changeText: {
-    fontSize: 12,
-    color: '#999',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  miniCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  miniIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  miniValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#312a7a',
-    marginBottom: 4,
-  },
-  miniLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 20,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  seeAll: {
-    fontSize: 14,
-    color: '#312a7a',
-    fontWeight: '600',
-  },
-  productItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  productRank: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f0eef8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  rankNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#312a7a',
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  productSales: {
-    fontSize: 12,
-    color: '#666',
-  },
-  productRevenue: {
-    alignItems: 'flex-end',
-  },
-  productAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#312a7a',
-  },
-  chartPlaceholder: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 40,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  chartIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  chartText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  chartSubtext: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-  },
-  exportSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 16,
-    gap: 12,
-  },
-  exportButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  exportIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  exportText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#312a7a',
-  },
-  bottomSpace: {
-    height: 20,
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#000',
   },
 });
 

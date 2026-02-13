@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './src/screens/LoginScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
+import SplashScreen from './src/screens/SplashScreen';
 import { authService } from './src/services/authService';
 
 export type RootStackParamList = {
@@ -18,6 +19,7 @@ function App() {
   const isDarkMode = useColorScheme() === 'dark';
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     checkLoginStatus();
@@ -25,7 +27,7 @@ function App() {
 
   const checkLoginStatus = async () => {
     try {
-      const loggedIn = await authService.isLoggedIn();
+      const loggedIn = await authService.isAuthenticated();
       setIsLoggedIn(loggedIn);
     } catch (error) {
       console.error('Error checking login status:', error);
@@ -34,11 +36,24 @@ function App() {
     }
   };
 
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#165044" />
+        <SplashScreen onFinish={handleSplashFinish} />
+      </SafeAreaProvider>
+    );
+  }
+
   if (isLoading) {
     return (
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#312a7a" />
+          <ActivityIndicator size="large" color="#165044" />
         </View>
       </SafeAreaProvider>
     );

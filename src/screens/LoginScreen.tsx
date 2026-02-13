@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   View,
@@ -14,53 +14,146 @@ import {
   StatusBar,
   Keyboard,
   TouchableWithoutFeedback,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { authService } from '../services/authService';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 
-type RootStackParamList = {
+// ✅ PERBAIKAN 1: Tambahkan export
+export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
 };
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Login'
->;
+// ✅ PERBAIKAN 2: Gunakan type alias yang benar
+type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
+const { width, height } = Dimensions.get('window');
+
 const LoginScreen = ({ navigation }: Props) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Username dan password harus diisi');
-      return;
-    }
+  useEffect(() => {
+    // Configure Google Sign In
+    GoogleSignin.configure({
+      webClientId: '154079047174-vjh742r8k65p8802ggrucjftjp58kl8f.apps.googleusercontent.com',
+      offlineAccess: true, 
+      forceCodeForRefreshToken: true,
+    });
+    
+    console.log('Google SignIn configured');
+  }, []);
 
-    setLoading(true);
-
+  const handleGoogleLogin = async () => {
     try {
-      const response = await authService.login({
-        email: username.trim(),
-        password: password,
-      });
+      setGoogleLoading(true);
+      
+      console.log('🔵 Starting Google Sign In...');
+      
+      // Check Play Services (Android only)
+      if (Platform.OS === 'android') {
+        const hasPlayServices = await GoogleSignin.hasPlayServices({ 
+          showPlayServicesUpdateDialog: true 
+        });
+        console.log('✅ Play Services available:', hasPlayServices);
+      }
+      
+      // Sign in with Google
+      const userInfo = await GoogleSignin.signIn();
+      console.log('✅ Google Sign In Success!');
+      console.log('📦 Full userInfo:', JSON.stringify(userInfo, null, 2));
+
+      // Cek struktur data yang sebenarnya
+      const user = (userInfo as any).data.user;
+      
+      console.log('👤 User data:', JSON.stringify(user, null, 2));
+      
+      if (!user || !user.email) {
+        console.error('❌ Invalid user data structure:', userInfo);
+        Alert.alert('Error', 'Failed to retrieve user data from Google');
+        return;
+      }
+
+      // Extract data dari Google
+      const googleData = {
+        email: user.email,
+        name: user.name || user.givenName || user.displayName || 'User',
+        google_id: user.id,
+        avatar: user.photo || null,
+      };
+
+      console.log('📤 Sending to backend:', googleData);
+
+      // Kirim data ke backend untuk cek email
+      const response = await authService.googleLogin(googleData);
+      console.log('📥 Backend response:', response);
 
       if (response.success) {
         navigation.replace('Main');
       } else {
-        Alert.alert('Error', 'Login gagal');
+        // Email tidak terdaftar
+        Alert.alert(
+          'Email Tidak Terdaftar', 
+          response.message || 'Email Anda belum terdaftar. Silahkan hubungi admin untuk registrasi.'
+        );
+        
+        // Sign out dari Google setelah gagal
+        await GoogleSignin.signOut();
+        console.log('🔴 User signed out from Google');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Terjadi kesalahan saat login');
-      console.error('Login error:', error);
+    } catch (error: any) {
+      console.error('❌ Google Sign In Error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Full error:', JSON.stringify(error, null, 2));
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('ℹ️ User cancelled the login flow');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Info', 'Sign in sedang dalam proses');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Play services tidak tersedia atau perlu diupdate');
+      } else if (error.code === '12501') {
+        console.log('ℹ️ Error 12501: User cancelled or configuration issue');
+        Alert.alert(
+          'Login Cancelled',
+          'Google Sign In dibatalkan atau ada masalah konfigurasi'
+        );
+      } else if (error.code === 'DEVELOPER_ERROR' || error.code === '10') {
+        console.error('🔴 DEVELOPER_ERROR Details:');
+        console.error('- Make sure SHA-1 is registered in Google Cloud Console');
+        console.error('- Make sure google-services.json is up to date');
+        console.error('- Make sure webClientId is correct');
+        console.error('- Current webClientId: 154079047174-vjh742r8k65p8802ggrucjftjp58kl8f.apps.googleusercontent.com');
+        
+        Alert.alert(
+          'Configuration Error', 
+          'Google Sign In belum dikonfigurasi dengan benar.\n\n' +
+          'Kemungkinan masalah:\n' +
+          '• SHA-1 certificate belum terdaftar\n' +
+          '• google-services.json outdated\n' +
+          '• Web Client ID tidak sesuai\n\n' +
+          'Error: ' + error.message
+        );
+      } else {
+        Alert.alert(
+          'Error', 
+          'Terjadi kesalahan saat login dengan Google: ' + 
+          (error.message || 'Unknown error') + 
+          '\n\nError code: ' + (error.code || 'N/A')
+        );
+      }
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -80,81 +173,43 @@ const LoginScreen = ({ navigation }: Props) => {
             {/* Logo/Brand Section */}
             <View style={styles.brandSection}>
               <View style={styles.logoCircle}>
-                <Text style={styles.logoText}>LN</Text>
+                <Image
+                  source={require('../assets/leadnest-logo.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </View>
-              <Text style={styles.brandName}>LeadsNest</Text>
-              <Text style={styles.tagline}>Manage your leads efficiently</Text>
             </View>
 
             {/* Form Section */}
             <View style={styles.formSection}>
-              <Text style={styles.welcomeText}>Welcome Back</Text>
-              
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>📧</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="your@email.com"
-                    placeholderTextColor="#aaa"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                    returnKeyType="next"
-                  />
-                </View>
-              </View>
+              <Text style={styles.welcomeText}>Manage your leads efficiently</Text>
+              <Text style={styles.tagline}>Track, organize, and nurture every lead to help you close deals faster.</Text>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#aaa"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    editable={!loading}
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.eyeIcon}>
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
+              {/* Google Sign In Button */}
               <TouchableOpacity
-                style={styles.forgotButton}
-                onPress={() => console.log('Forgot password')}>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
+                style={[styles.googleButton, googleLoading && styles.googleButtonDisabled]}
+                onPress={handleGoogleLogin}
+                disabled={loading || googleLoading}>
+                {googleLoading ? (
+                  <ActivityIndicator color="#312a7a" />
                 ) : (
-                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <>
+                    <Image
+                      source={require('../assets/google.png')}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  </>
                 )}
               </TouchableOpacity>
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => console.log('Sign up')}>
-                  <Text style={styles.signupText}>Sign Up</Text>
+                <TouchableOpacity 
+                  onPress={() => Alert.alert('Info', 'Silahkan hubungi admin untuk registrasi')}
+                  disabled={loading || googleLoading}>
+                  <Text style={styles.signupText}>Contact Admin</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -170,6 +225,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  logo: {
+    width: width * 0.6,
+    height: height * 0.3,
+    maxWidth: 80,
+    maxHeight: 80,
+  },
   scrollContainer: {
     flexGrow: 1,
   },
@@ -178,6 +239,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
+    justifyContent: 'space-between',
   },
   brandSection: {
     alignItems: 'center',
@@ -187,15 +249,9 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#312a7a',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#312a7a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
   },
   logoText: {
     fontSize: 32,
@@ -209,18 +265,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tagline: {
-    fontSize: 14,
+    width: '70%',
+    textAlign: 'center',
+    lineHeight: 22,
+    fontSize: 15,
+    marginBottom: 32,
     fontFamily: 'Poppins-Regular',
     color: '#888',
   },
   formSection: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   welcomeText: {
     fontSize: 24,
     fontFamily: 'Poppins-SemiBold',
     color: '#1a1a1a',
-    marginBottom: 32,
+    marginBottom: 10,
   },
   inputGroup: {
     marginBottom: 20,
@@ -277,12 +339,60 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+    width: '100%',
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   loginButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13,
+    fontFamily: 'Poppins-Regular',
+    color: '#888',
+  },
+  googleButton: {
+    width: '90%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  googleButtonDisabled: {
+    opacity: 0.7,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    color: '#1a1a1a',
     fontSize: 16,
     fontFamily: 'Poppins-SemiBold',
   },

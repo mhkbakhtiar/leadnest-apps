@@ -77,8 +77,7 @@ const DashboardScreen = () => {
     >
       <DashboardWidgets
         data={dashboardData}
-        onKelolakonsumen={handleKelolakonsumen}
-        onInputFollowup={handleInputFollowup}
+        onKonsumenPress={handleKelolakonsumen}
         onSchedulePress={handleSchedulePress}
       />
     </ScrollView>

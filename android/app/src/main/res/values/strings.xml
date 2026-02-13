@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">HelloTest</string>
+    <string name="app_name">LeadNest</string>
+    <string name="server_client_id">154079047174-vjh742r8k65p8802ggrucjftjp58kl8f.apps.googleusercontent.com</string>
+
 </resources>

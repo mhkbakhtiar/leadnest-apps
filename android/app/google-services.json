@@ -1,0 +1,24 @@
+{
+  "project_info": {
+    "project_id": "leadnest-apps"
+  },
+  "client": [
+    {
+      "client_info": {
+        "android_client_info": {
+          "package_name": "com.leadnest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "154079047174-vjh742r8k65p8802ggrucjftjp58kl8f.apps.googleusercontent.com",
+          "client_type": 1 
+        },
+        {
+          "client_id": "154079047174-b4kicqnsra42mo2j7em1u2stppanhn6e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://leadnesttrial.bizmap.id/api'; // change with URL API
+const BASE_URL = 'https://saban-group-leadnest.verse-realty.com/api'; // change with URL API
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -45,6 +45,8 @@ class ApiHelper {
       config.body = JSON.stringify(body);
     }
 
+    console.log('Payloads for', `${this.baseUrl}${endpoint}`, ':', { method, body });
+
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, config);
       const data = await response.json();
@@ -64,10 +66,29 @@ class ApiHelper {
     }
   }
 
-  // GET request
-  async get<T>(endpoint: string, token?: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET', token });
+// GET request
+async get<T>(
+  endpoint: string,
+  token?: string,
+  params?: Record<string, any> // ✅ lebih fleksibel
+): Promise<T> {
+  let url = endpoint;
+
+  // kalau params ada, ubah ke query string
+  if (params && Object.keys(params).length > 0) {
+    const queryString = new URLSearchParams(
+      Object.entries(params).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null) acc[key] = String(value);
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString();
+
+    url += `?${queryString}`;
   }
+
+  return this.request<T>(url, { method: 'GET', token });
+}
+
 
   // POST request
   async post<T>(

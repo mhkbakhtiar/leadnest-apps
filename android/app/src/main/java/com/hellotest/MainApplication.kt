@@ -1,4 +1,4 @@
-package com.hellotest
+package com.leadnest
 
 import android.app.Application
 import com.facebook.react.PackageList
