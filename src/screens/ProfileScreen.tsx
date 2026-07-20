@@ -150,7 +150,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Menu Items */}
-        <View style={styles.menuSection}>
+        {/* <View style={styles.menuSection}>
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
@@ -186,7 +186,7 @@ const ProfileScreen = () => {
             <Text style={styles.menuText}>About</Text>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Logout Button */}
         <TouchableOpacity 

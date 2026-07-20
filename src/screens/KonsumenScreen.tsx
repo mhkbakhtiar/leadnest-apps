@@ -279,6 +279,13 @@ const KonsumenScreen = () => {
 
   const [filterExpanded, setFilterExpanded] = useState(false);
 
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(''); // format YYYY-MM-DD
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [showDateFromPicker, setShowDateFromPicker] = useState(false);
+  const [showDateToPicker, setShowDateToPicker] = useState(false);
+  const [tempDateFrom, setTempDateFrom] = useState(new Date());
+  const [tempDateTo, setTempDateTo] = useState(new Date());
+
 
   const [pagination, setPagination] = useState({
     current_page: 1,
@@ -413,24 +420,23 @@ const KonsumenScreen = () => {
 
   const handleFilterStatus = (value: string) => {
     setFilterStatus(value);
-    fetchKonsumenList(value, filterSource);
+    fetchKonsumenList(value, filterSource, filterBudget, filterProject, 1, pagination.per_page, false, searchQuery, filterDateFrom, filterDateTo);
   };
 
   const handleFilterBudget = (value: string) => {
     setFilterBudget(value);
-    fetchKonsumenList(filterStatus, filterSource, value);
+    fetchKonsumenList(filterStatus, filterSource, value, filterProject, 1, pagination.per_page, false, searchQuery, filterDateFrom, filterDateTo);
   };
 
   const handleFilterProject = (value: string) => {
     setFilterProject(value);
-    fetchKonsumenList(filterStatus, filterSource, filterBudget, value);
+    fetchKonsumenList(filterStatus, filterSource, filterBudget, value, 1, pagination.per_page, false, searchQuery, filterDateFrom, filterDateTo);
   };
 
-  // Fungsi untuk handle filter source
   const handleFilterSource = (value: string) => {
     setFilterSource(value);
     setShowSourceModal(false);
-    fetchKonsumenList(filterStatus, value);
+    fetchKonsumenList(filterStatus, value, filterBudget, filterProject, 1, pagination.per_page, false, searchQuery, filterDateFrom, filterDateTo);
   };
 
   const getSourceLabel = () => {
@@ -441,7 +447,7 @@ const KonsumenScreen = () => {
 
   // Fungsi untuk cek apakah ada filter aktif
   const hasActiveFilter = () => {
-    return filterStatus !== '' || filterSource !== '' || filterBudget !== '';
+    return filterStatus !== '' || filterSource !== '' || filterBudget !== '' || filterDateFrom !== '' || filterDateTo !== '';
   };
 
   // Fungsi untuk reset semua filter
@@ -450,7 +456,9 @@ const KonsumenScreen = () => {
     setFilterSource('');
     setFilterBudget('');
     setFilterProject('');
-    fetchKonsumenList('', '');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    fetchKonsumenList('', '', '', '', 1, pagination.per_page, false, '', '', '');
   };
 
   const fetchKonsumenList = async (
@@ -461,14 +469,16 @@ const KonsumenScreen = () => {
     page = 1,
     per_page = 10,
     append = false,
-    search = ''
+    search = '',
+    date_from = '', // NEW
+    date_to = ''    // NEW
   ) => {
     try {
       if (!append) {
         if (page === 1 && !search) {
-          setLoading(true); // 🔥 hanya initial load
+          setLoading(true);
         } else {
-          setSearching(true); // 🔥 search / filter
+          setSearching(true);
         }
       } else {
         setLoadingMore(true);
@@ -481,7 +491,9 @@ const KonsumenScreen = () => {
         project,
         page,
         per_page,
-        search // 🔥 WAJIB
+        search,
+        date_from, // NEW
+        date_to    // NEW
       });
 
       if (append) {
@@ -498,7 +510,6 @@ const KonsumenScreen = () => {
       }
 
       setPagination(response.meta);
-
     } catch (error) {
       console.error(error);
     } finally {
@@ -511,12 +522,9 @@ const KonsumenScreen = () => {
   };
 
 
-
   const handleLoadMore = () => {
     if (!pagination) return;
-
-    if (loading || loadingMore) return; // 🔥 anti double call
-
+    if (loading || loadingMore) return;
     if (pagination.current_page >= pagination.last_page) return;
 
     fetchKonsumenList(
@@ -527,10 +535,45 @@ const KonsumenScreen = () => {
       pagination.current_page + 1,
       pagination.per_page,
       true,
-      searchQuery // 🔥 penting
+      searchQuery,
+      filterDateFrom,
+      filterDateTo
     );
   };
 
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDateFromChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowDateFromPicker(false);
+    if (selectedDate) {
+      setTempDateFrom(selectedDate);
+      const formatted = formatLocalDate(selectedDate);
+      setFilterDateFrom(formatted);
+      fetchKonsumenList(filterStatus, filterSource, filterBudget, filterProject, 1, pagination.per_page, false, searchQuery, formatted, filterDateTo);
+    }
+  };
+
+  const handleDateToChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowDateToPicker(false);
+    if (selectedDate) {
+      setTempDateTo(selectedDate);
+      const formatted = formatLocalDate(selectedDate);
+      setFilterDateTo(formatted);
+      fetchKonsumenList(filterStatus, filterSource, filterBudget, filterProject, 1, pagination.per_page, false, searchQuery, filterDateFrom, formatted);
+    }
+  };
+
+  const clearDateFilter = () => {
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    fetchKonsumenList(filterStatus, filterSource, filterBudget, filterProject, 1, pagination.per_page, false, searchQuery, '', '');
+  };
 
 
   const handleDelete = async (id: number) => {
@@ -569,7 +612,7 @@ const KonsumenScreen = () => {
           {hasActiveFilter() && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>
-                {[filterStatus, filterSource, filterBudget].filter(Boolean).length}
+                {[filterStatus, filterSource, filterBudget, filterDateFrom, filterDateTo].filter(Boolean).length}
               </Text>
             </View>
           )}
@@ -657,6 +700,57 @@ const KonsumenScreen = () => {
               </Text>
               <Text style={styles.dropdownIcon}>▼</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Date Filter */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterLabel}>Tanggal Ditambahkan</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.dropdownButton, { flex: 1 }, filterDateFrom && styles.dropdownButtonActive]}
+                onPress={() => setShowDateFromPicker(true)}
+              >
+                <Text style={[styles.dropdownButtonText, filterDateFrom && styles.dropdownButtonTextActive]}>
+                  {filterDateFrom
+                    ? new Date(filterDateFrom).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Dari tanggal'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.dropdownButton, { flex: 1 }, filterDateTo && styles.dropdownButtonActive]}
+                onPress={() => setShowDateToPicker(true)}
+              >
+                <Text style={[styles.dropdownButtonText, filterDateTo && styles.dropdownButtonTextActive]}>
+                  {filterDateTo
+                    ? new Date(filterDateTo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Sampai tanggal'}
+                </Text>
+              </TouchableOpacity>
+
+              {(filterDateFrom || filterDateTo) && (
+                <TouchableOpacity onPress={clearDateFilter} style={{ justifyContent: 'center', paddingHorizontal: 8 }}>
+                  <Text style={{ color: '#ef4444', fontSize: 18 }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {showDateFromPicker && (
+              <DateTimePicker
+                value={tempDateFrom}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateFromChange}
+              />
+            )}
+            {showDateToPicker && (
+              <DateTimePicker
+                value={tempDateTo}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateToChange}
+              />
+            )}
           </View>
         </>
       )}

@@ -53,6 +53,8 @@ export interface KonsumenFilters {
   project?: string;
   per_page?: number;
   page?: number;
+  date_from?: string;
+  date_to?: string;
 }
 
 export interface CreateKonsumenData {
@@ -106,7 +108,8 @@ class KonsumenService {
     if (filters?.project) params.append('project', filters.project);
     if (filters?.per_page) params.append('per_page', filters.per_page.toString());
     if (filters?.page) params.append('page', filters.page.toString());
-    
+    if (filters?.date_from) params.append('date_from', filters.date_from);
+    if (filters?.date_to) params.append('date_to', filters.date_to);
     const queryString = params.toString();
     const url = queryString ? `/konsumen?${queryString}` : '/konsumen';
     
