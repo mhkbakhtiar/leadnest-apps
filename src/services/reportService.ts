@@ -5,124 +5,68 @@ import { authService } from './authService';
 // ====== INTERFACES =====
 // =======================
 export interface DashboardReport {
-  konsumen: {
-    total: number;
-    this_month: number;
-    last_month: number;
-    growth: number;
-    by_latest_status: {
-      cold: number;
-      warm: number;
-      hot: number;
-      closing: number;
-      cancel: number;
-    };
+  stats: {
+    total_konsumen: number;
+    konsumen_7days: number;
+    konsumen_this_month: number;
+    total_closing_alltime: number;
+    total_closing_month: number;
+    total_followup: number;
+    followup_7days: number;
+    conversion_rate: number;
   };
-  followups: {
-    total: number;
-    this_month: number;
-    upcoming: number;
-    upcoming_visits: number;
+  segmentation: {
+    by_response: {
+      has_data: boolean;
+      hot: number;
+      warm: number;
+      cold: number;
+      hot_percent: number;
+      warm_percent: number;
+      cold_percent: number;
+    };
+    by_budget: {
+      has_data: boolean;
+      data: { budget: string; count: number; percent: number }[];
+    };
+    by_source: {
+      has_data: boolean;
+      data: { source: string; count: number; percent: number }[];
+    };
     by_status: {
-      cold: number;
-      warm: number;
-      hot: number;
-      closing: number;
-      cancel: number;
+      has_data: boolean;
+      data: { name: string; count: number; percent: number; color: string }[];
+    };
+    by_type: {
+      has_data: boolean;
+      data: { type: string; count: number; percent: number; color: string }[];
     };
   };
-}
-
-export interface StatusData {
-  status: string;
-  total: number;
-  percentage?: number;
-}
-
-export interface SourceData {
-  source: string;
-  total: number;
-}
-
-export interface TimelineData {
-  date: string;
-  total: number;
-}
-
-export interface KonsumenReport {
-  total_konsumen: number;
-  by_status: StatusData[];
-  by_source: SourceData[];
-  timeline: TimelineData[];
-}
-
-export interface FollowupReport {
-  total_followups: number;
-  by_status: StatusData[];
-  by_type: { type: string; total: number }[];
-  by_result: { result: string; total: number }[];
-  timeline: TimelineData[];
-  visits: {
-    scheduled: number;
-    upcoming: number;
+  mitra_stats: {
+    name: string;
+    total_konsumen: number;
+    total_followup: number;
+    total_closing: number;
+    closing_month: number;
+    conversion_rate: number;
+  }[];
+  today_followups: {
+    konsumen_name: string;
+    notes: string | null;
+    status: string | null;
+  }[];
+  recent_followups: {
+    konsumen_name: string;
+    notes: string | null;
+    type: string;
+    status: string | null;
+    followup_date: string;
+  }[];
+  charts_data: {
+    konsumen_6months: { labels: string[]; data: number[] };
+    closing_6months: { labels: string[]; data: number[] };
+    followup_6months: { labels: string[]; data: number[] };
   };
-  avg_per_konsumen: number;
-}
-
-export interface SourceReportData {
-  source: string;
-  total: number;
-  cold: number;
-  warm: number;
-  hot: number;
-  closing: number;
-  cancel: number;
-  closing_rate: number;
-  cancel_rate: number;
-  active_rate: number;
-}
-
-export interface FunnelStage {
-  stage: string;
-  label: string;
-  count: number;
-  percentage: number;
-  conversion_rate?: number;
-}
-
-export interface StatusProgressionReport {
-  funnel: FunnelStage[];
-  lost: {
-    cancel: number;
-    percentage: number;
-  };
-  summary: {
-    total_leads: number;
-    closing: number;
-    overall_closing_rate: number;
-  };
-}
-
-export interface VisitReport {
-  total_visits: number;
-  completed: number;
-  upcoming: number;
-  today: number;
-  this_week: number;
-  by_status: { status: string; total: number }[];
-  timeline: TimelineData[];
-}
-
-export interface ReportParams {
-  period?: 'day' | 'week' | 'month' | 'year';
-  start_date?: string;
-  end_date?: string;
-}
-
-export interface ExportParams {
-  type?: 'konsumen' | 'followups' | 'combined';
-  start_date?: string;
-  end_date?: string;
 }
 
 // =======================
@@ -135,96 +79,12 @@ class ReportService {
   async getDashboard(): Promise<DashboardReport> {
     const token = await authService.getToken();
     const response = await apiHelper.get<any>('/reports/dashboard', token || undefined);
-    
+
     if (response.success && response.data) {
       return response.data;
     }
 
     throw new Error(response.error || 'Failed to fetch dashboard report');
-  }
-
-  /**
-   * Get konsumen report
-   */
-  async getKonsumenReport(params?: ReportParams): Promise<KonsumenReport> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/konsumen-report', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to fetch konsumen report');
-  }
-
-  /**
-   * Get followup report
-   */
-  async getFollowupReport(params?: ReportParams): Promise<FollowupReport> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/followup-report', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to fetch followup report');
-  }
-
-  /**
-   * Get source report
-   */
-  async getSourceReport(params?: Omit<ReportParams, 'period'>): Promise<SourceReportData[]> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/source-report', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to fetch source report');
-  }
-
-  /**
-   * Get status progression report
-   */
-  async getStatusProgressionReport(params?: Omit<ReportParams, 'period'>): Promise<StatusProgressionReport> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/status-progression-report', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to fetch status progression report');
-  }
-
-  /**
-   * Get visit report
-   */
-  async getVisitReport(params?: ReportParams): Promise<VisitReport> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/visit-report', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to fetch visit report');
-  }
-
-  /**
-   * Export report data
-   */
-  async exportData(params?: ExportParams): Promise<any> {
-    const token = await authService.getToken();
-    const response = await apiHelper.get<any>('/reports/export', token || undefined, params);
-
-    if (response.success && response.data) {
-      return response.data;
-    }
-
-    throw new Error(response.error || 'Failed to export data');
   }
 }
 

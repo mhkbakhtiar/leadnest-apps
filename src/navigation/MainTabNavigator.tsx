@@ -6,6 +6,7 @@ import KonsumenScreen from '../screens/KonsumenScreen';
 import ReportScreen from '../screens/ReportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
+import KavlingScreen from '../screens/KavlingScreen'; // ✅ tambah
 import NotFoundScreen from '../screens/NotFoundScreen';
 import BottomTabBar from '../components/BottomTabBar';
 
@@ -26,6 +27,8 @@ const MainTabNavigator = () => {
         return <ProfileScreen />;
       case 'Jadwal':
         return <ScheduleScreen />;
+      case 'Kavling':               // ✅ tambah
+        return <KavlingScreen />;
       default:
         return <NotFoundScreen />;
     }

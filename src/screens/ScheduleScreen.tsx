@@ -487,6 +487,20 @@ function ScheduleScreen() {
     }
   };
 
+  const getKonsumenHistory = (schedule: Schedule) => {
+    if (!schedule?.konsumen?.id) return [];
+
+    return allSchedules
+      .filter((s) => 
+        s.konsumen?.id === schedule.konsumen.id && 
+        s.id !== schedule.id
+      )
+      .sort((a, b) => {
+        const dateA = new Date(a.followup_date || a.schedule_date || '').getTime();
+        const dateB = new Date(b.followup_date || b.schedule_date || '').getTime();
+        return dateB - dateA;
+      });
+  };
 
   return (
     <View style={styles.container}>
@@ -558,9 +572,21 @@ function ScheduleScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {selectedSchedule && (
+          {selectedSchedule && (() => {
+            const historyList = getKonsumenHistory(selectedSchedule);
+
+            return (
               <>
-                <Text style={styles.modalTitle}>{selectedSchedule.konsumen.name} | {capitalizeFirst(selectedSchedule.type)}</Text>
+                <View style={styles.modalHeaderRow}>
+                  <Text style={styles.modalTitle}>
+                    {selectedSchedule.konsumen.name} | {capitalizeFirst(selectedSchedule.type)}
+                  </Text>
+                  {selectedSchedule.konsumen.mitra?.name && (
+                    <View style={styles.projectBadge}>
+                      <Text style={styles.projectBadgeText}>{selectedSchedule.konsumen.mitra.name}</Text>
+                    </View>
+                  )}
+                </View>
                 
                 <View style={styles.modalSection}>
                   <View style={styles.modalRow}>
@@ -573,6 +599,30 @@ function ScheduleScreen() {
                         ({timeDifferenceText(selectedSchedule.next_followup_date || '')})
                       </Text>
                     </Text>
+                  </View>
+
+                  <View>
+                    <Text style={styles.modalLabel}>History Follow Up</Text>
+                    {historyList.length === 0 ? (
+                      <Text style={styles.historyEmpty}>Belum ada history follow up</Text>
+                    ) : (
+                      historyList.map((h) => (
+                        <View key={h.id} style={styles.historyItem}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                            <Text style={styles.historyDate}>
+                              {scheduleService.formatDate(h.followup_date || h.schedule_date || '')}
+                            </Text>
+                            <Text style={styles.historyStatus}>{h.followup_status?.name}</Text>
+                          </View>
+                          <Text style={styles.historyType}>
+                            {capitalizeFirst(h.schedule_type === 'followup' ? h.type : h.schedule_type)}
+                          </Text>
+                          <Text style={styles.historyResult} numberOfLines={2}>
+                            {h.result || 'Tidak ada catatan'}
+                          </Text>
+                        </View>
+                      ))
+                    )}
                   </View>
 
 
@@ -624,7 +674,8 @@ function ScheduleScreen() {
                   </TouchableOpacity>
                 </View>
               </>
-            )}
+            )
+          })()}
           </View>
         </View>
       </Modal>
@@ -633,6 +684,55 @@ function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
+  modalHeaderRow: {
+    marginBottom: 20,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  projectBadge: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  projectBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#165044',
+  },
+  historyItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingVertical: 10,
+  },
+  historyDate: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  historyStatus: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  historyType: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  historyResult: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  historyEmpty: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

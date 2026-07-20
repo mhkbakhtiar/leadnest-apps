@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -20,6 +20,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import konsumenService, { Konsumen, KonsumenStatistics } from '../services/konsumenService';
 import followupService, { Followup, CreateFollowupData } from '../services/followupService';
 import authService from '../services/authService';
+
+import _ from 'lodash';
 
 
 const sourceOptions = [
@@ -258,6 +260,7 @@ const KonsumenScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -385,17 +388,26 @@ const KonsumenScreen = () => {
     return project ? project.name : 'Semua Project';
   };
 
-  const handleSearch = async (text: string) => {
+  const debouncedSearch = useRef(
+    _.debounce((text) => {
+      fetchKonsumenList(
+        filterStatus,
+        filterSource,
+        filterBudget,
+        filterProject,
+        1,
+        pagination.per_page,
+        false,
+        text
+      );
+    }, 500)
+  ).current;
+
+  const handleSearch = (text: string) => {
     setSearchQuery(text);
+
     if (text.length > 2 || text.length === 0) {
-      try {
-        const data = await konsumenService.getKonsumenList({ search: text });
-        if (data) {
-          setKonsumenList(data.data);
-        }
-      } catch (error) {
-        console.error('Error searching:', error);
-      }
+      debouncedSearch(text);
     }
   };
 
@@ -448,15 +460,17 @@ const KonsumenScreen = () => {
     project = '',
     page = 1,
     per_page = 10,
-    append = false
+    append = false,
+    search = ''
   ) => {
     try {
-      
       if (!append) {
-        // 🔥 Initial load / refresh saja
-        setLoading(true);
+        if (page === 1 && !search) {
+          setLoading(true); // 🔥 hanya initial load
+        } else {
+          setSearching(true); // 🔥 search / filter
+        }
       } else {
-        // 🔥 Load more → only footer loading
         setLoadingMore(true);
       }
 
@@ -466,21 +480,20 @@ const KonsumenScreen = () => {
         budget,
         project,
         page,
-        per_page
+        per_page,
+        search // 🔥 WAJIB
       });
 
       if (append) {
-        // 🔥 Append data lama + data baru
         setKonsumenList(prev => {
           const merged = [...prev, ...response.data];
           const unique = merged.filter(
-            (item, index, self) => index === self.findIndex(t => t.id === item.id)
+            (item, index, self) =>
+              index === self.findIndex(t => t.id === item.id)
           );
           return unique;
         });
-
       } else {
-        // 🔥 Replace full list
         setKonsumenList(response.data);
       }
 
@@ -489,9 +502,9 @@ const KonsumenScreen = () => {
     } catch (error) {
       console.error(error);
     } finally {
-      // 🔥 Stop both loading states safely
       if (!append) {
         setLoading(false);
+        setSearching(false);
       }
       setLoadingMore(false);
     }
@@ -500,10 +513,10 @@ const KonsumenScreen = () => {
 
 
   const handleLoadMore = () => {
-    
     if (!pagination) return;
-    
-    // Kalau sudah halaman terakhir, stop
+
+    if (loading || loadingMore) return; // 🔥 anti double call
+
     if (pagination.current_page >= pagination.last_page) return;
 
     fetchKonsumenList(
@@ -513,7 +526,8 @@ const KonsumenScreen = () => {
       filterProject,
       pagination.current_page + 1,
       pagination.per_page,
-      true // flag append
+      true,
+      searchQuery // 🔥 penting
     );
   };
 
@@ -776,7 +790,7 @@ const KonsumenScreen = () => {
     </Modal>
   );
 
-  if (loading) {
+  if (loading && !searchQuery) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#312a7a" />
@@ -929,12 +943,36 @@ const KonsumenScreen = () => {
                       onChangeText={handleSearch}
                       autoFocus
                     />
-                    <TouchableOpacity onPress={() => {
-                      setShowSearch(false);
-                      setSearchQuery('');
-                    }}>
-                      <CloseIcon size={20} color="#fff" />
-                    </TouchableOpacity>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      
+                      {/* 🔥 LOADING KECIL */}
+                      {searching && (
+                        <ActivityIndicator size="small" color="#fff" />
+                      )}
+
+                      {/* ❌ CLEAR BUTTON */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowSearch(false);
+                          setSearchQuery('');
+
+                          fetchKonsumenList(
+                            filterStatus,
+                            filterSource,
+                            filterBudget,
+                            filterProject,
+                            1,
+                            pagination.per_page,
+                            false,
+                            ''
+                          );
+                        }}
+                      >
+                        <CloseIcon size={20} color="#fff" />
+                      </TouchableOpacity>
+
+                    </View>
                   </View>
                 )}
               </View>
@@ -974,7 +1012,7 @@ const KonsumenScreen = () => {
         }
 
         ListEmptyComponent={
-          !loading && (
+          !loading ? (
             <View style={newStyles.emptyState}>
               <Text style={newStyles.emptyStateTitle}>Tidak Ada Data</Text>
               <Text style={newStyles.emptyStateText}>
@@ -985,7 +1023,7 @@ const KonsumenScreen = () => {
                   : 'Belum ada data konsumen. Tambahkan konsumen baru untuk memulai.'}
               </Text>
             </View>
-          )
+          ) : null
         }
 
         // Footer loading untuk infinite scroll
@@ -1312,14 +1350,26 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>WhatsApp</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.whatsapp}
-                  onChangeText={(text) => setFormData({ ...formData, whatsapp: text })}
-                  placeholder="08xxxxxxxxxx"
-                  placeholderTextColor="#6b7280"
-                  keyboardType="phone-pad"
-                />
+                <View style={styles.phoneInputContainer}>
+                  <Text style={styles.phonePrefix}>+62</Text>
+                  <TextInput
+                    style={styles.phoneInput}
+                    value={formData.whatsapp}
+                    onChangeText={(text) => {
+                      let cleaned = text.replace(/\D/g, ''); // buang non-angka
+                      if (cleaned.startsWith('0')) {
+                        cleaned = cleaned.slice(1);
+                      }
+                      if (cleaned.startsWith('62')) {
+                        cleaned = cleaned.slice(2);
+                      }
+                      setFormData({ ...formData, whatsapp: cleaned });
+                    }}
+                    placeholder="85xxxxxxxxxx"
+                    placeholderTextColor="#6b7280"
+                    keyboardType="phone-pad"
+                  />
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -5309,6 +5359,26 @@ const styles = StyleSheet.create({
   sourceOptionTextActive: {
     color: '#312a7a',
     fontWeight: '600',
+  },
+  phoneInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  phonePrefix: {
+    fontSize: 15,
+    color: '#1F2937',
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  phoneInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1F2937',
+    paddingVertical: 12,
   },
 
 });

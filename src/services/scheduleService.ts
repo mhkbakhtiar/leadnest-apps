@@ -33,6 +33,10 @@ export interface Schedule {
     company: string | null;
     position: string | null;
     status: string;
+    mitra: {
+      id: number;
+      name: string;
+    }
   };
   followup_status: {
     id: number;

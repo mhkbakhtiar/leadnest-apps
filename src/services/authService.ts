@@ -32,7 +32,7 @@ interface AuthResponse {
 }
 
 class AuthService {
-  private API_BASE = API_URL || 'https://saban-group-leadnest.verse-realty.com/api';
+  private API_BASE = API_URL || 'https://auragroup-leadnest.verse-realty.com/api';
 
   // Regular Login
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
