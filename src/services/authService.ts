@@ -64,7 +64,7 @@ class AuthService {
   // Google Login - Kirim email, name, google_id, avatar
   async googleLogin(googleData: GoogleLoginData): Promise<AuthResponse> {
     try {
-      console.log('Google login request:', googleData);
+      // console.log('Google login request:', googleData);
 
       const response = await fetch(`${this.API_BASE}/login/google`, {
         method: 'POST',
@@ -76,7 +76,7 @@ class AuthService {
       });
 
       const data = await response.json();
-      console.log('Google login response:', data);
+      // console.log('Google login response:', data);
 
       if (data.success && data.data?.token) {
         // Save token and user data

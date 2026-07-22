@@ -351,7 +351,7 @@ const KonsumenScreen = () => {
       setPagination(konsumenData.meta);
     } catch (error) {
       console.error('Error loading data:', error);
-      Alert.alert('Error', 'Gagal memuat data konsumen');
+      showErrorToast('Gagal memuat data konsumen');
     } finally {
       setLoading(false);
     }
@@ -362,7 +362,7 @@ const KonsumenScreen = () => {
       setLoadingMitras(true);
       const userData = await authService.getUser();
       if (!userData) {
-        Alert.alert('Error', 'Gagal mendapatkan data bisnis / project');
+        showErrorToast('Gagal mendapatkan data bisnis / project');
         setLoadingMitras(false);
         return;
       }
@@ -370,7 +370,7 @@ const KonsumenScreen = () => {
       setMitras(data);
       
     } catch (error: any) {
-      Alert.alert('Error', 'Gagal memuat daftar mitra');
+      showErrorToast('Gagal memuat daftar mitra');
     } finally {
       setLoadingMitras(false);
     }
@@ -588,10 +588,10 @@ const KonsumenScreen = () => {
           onPress: async () => {
             try {
               await konsumenService.deleteKonsumen(id);
-              Alert.alert('Berhasil', 'Konsumen berhasil dihapus');
+              showSuccessToast 'Konsumen berhasil dihapus');
               fetchData();
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              showErrorToast(error.message);
             }
           },
         },
@@ -1246,7 +1246,7 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
       setLoadingMitras(true);
       const userData = await authService.getUser();
       if (!userData) {
-        Alert.alert('Error', 'Gagal mendapatkan data bisnis / project');
+        showErrorToast('Gagal mendapatkan data bisnis / project');
         setLoadingMitras(false);
         return;
       }
@@ -1258,7 +1258,7 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
         setFormData(prev => ({ ...prev, mitra_id: data[0].id.toString() }));
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Gagal memuat daftar mitra');
+      showErrorToast('Gagal memuat daftar mitra');
     } finally {
       setLoadingMitras(false);
     }
@@ -1280,7 +1280,7 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
   const handleSave = async () => {
     // NEW: Validasi mitra
     if (!formData.mitra_id) {
-      Alert.alert('Error', 'Pilih mitra/bisnis terlebih dahulu');
+      showErrorToast('Pilih mitra/bisnis terlebih dahulu');
       return;
     }
 
@@ -1295,17 +1295,17 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
 
     // Validasi source
     if (!Array.isArray(formData.source) || formData.source.length === 0) {
-      Alert.alert('Error', 'Sumber konsumen harus dipilih');
+      showErrorToast('Sumber konsumen harus dipilih');
       return;
     }
 
     try {
       setSaving(true);
       await konsumenService.createKonsumen(formData); // Will include mitra_id
-      Alert.alert('Berhasil', 'Konsumen berhasil ditambahkan');
+      showSuccessToast 'Konsumen berhasil ditambahkan');
       onSuccess();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showErrorToast(error.message);
     } finally {
       setSaving(false);
     }
@@ -1784,14 +1784,14 @@ const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any) => {
       setLoadingMitras(true);
       const userData = await authService.getUser();
       if (!userData) {
-        Alert.alert('Error', 'Gagal mendapatkan data bisnis / project');
+        showErrorToast('Gagal mendapatkan data bisnis / project');
         setLoadingMitras(false);
         return;
       }
       const data = await konsumenService.getMitras(userData.id.toString());
       setMitras(data);
     } catch (error: any) {
-      Alert.alert('Error', 'Gagal memuat daftar mitra');
+      showErrorToast('Gagal memuat daftar mitra');
     } finally {
       setLoadingMitras(false);
     }
@@ -1825,7 +1825,7 @@ const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any) => {
   const handleSave = async () => {
     // NEW: Validasi mitra
     if (!formData.mitra_id) {
-      Alert.alert('Error', 'Pilih mitra/bisnis terlebih dahulu');
+      showErrorToast('Pilih mitra/bisnis terlebih dahulu');
       return;
     }
 
@@ -1840,17 +1840,17 @@ const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any) => {
 
     // Validasi source
     if (!Array.isArray(formData.source) || formData.source.length === 0) {
-      Alert.alert('Error', 'Sumber konsumen harus dipilih');
+      showErrorToast('Sumber konsumen harus dipilih');
       return;
     }
 
     try {
       setSaving(true);
       await konsumenService.updateKonsumen(konsumen.id, formData); // Will include mitra_id
-      Alert.alert('Berhasil', 'Konsumen berhasil diupdate');
+      showSuccessToast 'Konsumen berhasil diupdate');
       onSuccess();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showErrorToast(error.message);
     } finally {
       setSaving(false);
     }
@@ -3007,7 +3007,7 @@ const AddFollowupModal = ({ visible, konsumenId, onClose, onSuccess }: any) => {
       setFollowupNotes(notes);
     } catch (error) {
       console.error('Error fetching options:', error);
-      Alert.alert('Error', 'Gagal memuat data pilihan');
+      showErrorToast('Gagal memuat data pilihan');
     } finally {
       setLoadingOptions(false);
     }
@@ -3141,19 +3141,19 @@ const AddFollowupModal = ({ visible, konsumenId, onClose, onSuccess }: any) => {
 
   const handleSave = async () => {
     if (!formData.notes) {
-      Alert.alert('Error', 'Keterangan followup harus diisi');
+      showErrorToast('Keterangan followup harus diisi');
       return;
     }
 
     // Validasi response hanya jika "Berhasil terhubung" dipilih
     if (formData.notes === 'Berhasil terhubung' && selectedResponses.length === 0) {
-      Alert.alert('Error', 'Response konsumen harus dipilih minimal 1');
+      showErrorToast('Response konsumen harus dipilih minimal 1');
       return;
     }
 
     // ADDED: Validasi visit_date jika response mengandung "mau cek lokasi"
     if (shouldShowVisitDate() && !formData.visit_date) {
-      Alert.alert('Error', 'Jadwal cek lokasi harus diisi');
+      showErrorToast('Jadwal cek lokasi harus diisi');
       return;
     }
 
@@ -3161,10 +3161,10 @@ const AddFollowupModal = ({ visible, konsumenId, onClose, onSuccess }: any) => {
       setSaving(true);
       await updateKonsumenContact();
       await followupService.createFollowup(formData);
-      Alert.alert('Berhasil', 'Follow up berhasil ditambahkan');
+      showSuccessToast 'Follow up berhasil ditambahkan');
       onSuccess();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showErrorToast(error.message);
     } finally {
       setSaving(false);
     }
@@ -3713,7 +3713,7 @@ const EditFollowupModal = ({ visible, followup, onClose, onSuccess }: any) => {
       setFollowupNotes(notes);
     } catch (error) {
       console.error('Error fetching options:', error);
-      Alert.alert('Error', 'Gagal memuat data pilihan');
+      showErrorToast('Gagal memuat data pilihan');
     } finally {
       setLoadingOptions(false);
     }
@@ -3840,19 +3840,19 @@ const EditFollowupModal = ({ visible, followup, onClose, onSuccess }: any) => {
 
   const handleSave = async () => {
     if (!formData.notes) {
-      Alert.alert('Error', 'Keterangan followup harus diisi');
+      showErrorToast('Keterangan followup harus diisi');
       return;
     }
 
     // FIXED: Validasi response hanya jika "Berhasil terhubung" dipilih (sama seperti Add Modal)
     if (formData.notes === 'Berhasil terhubung' && selectedResponses.length === 0) {
-      Alert.alert('Error', 'Response konsumen harus dipilih minimal 1');
+      showErrorToast('Response konsumen harus dipilih minimal 1');
       return;
     }
 
     // Validasi visit_date jika response mengandung "mau cek lokasi"
     if (shouldShowVisitDate() && !formData.visit_date) {
-      Alert.alert('Error', 'Jadwal cek lokasi harus diisi');
+      showErrorToast('Jadwal cek lokasi harus diisi');
       return;
     }
 
@@ -3861,10 +3861,10 @@ const EditFollowupModal = ({ visible, followup, onClose, onSuccess }: any) => {
       // Update konsumen contact terlebih dahulu (sama seperti Add Modal)
       await updateKonsumenContact();
       await followupService.updateFollowup(followup.id, formData);
-      Alert.alert('Berhasil', 'Follow up berhasil diupdate');
+      showSuccessToast 'Follow up berhasil diupdate');
       onSuccess();
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showErrorToast(error.message);
     } finally {
       setSaving(false);
     }

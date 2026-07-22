@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import notificationService from '../services/notificationService';
 import {
   View,
   Text,
@@ -69,17 +70,13 @@ const LoginScreen = ({ navigation }: Props) => {
       
       // Sign in with Google
       const userInfo = await GoogleSignin.signIn();
-      console.log('✅ Google Sign In Success!');
-      console.log('📦 Full userInfo:', JSON.stringify(userInfo, null, 2));
 
       // Cek struktur data yang sebenarnya
       const user = (userInfo as any).data.user;
       
-      console.log('👤 User data:', JSON.stringify(user, null, 2));
-      
       if (!user || !user.email) {
         console.error('❌ Invalid user data structure:', userInfo);
-        Alert.alert('Error', 'Failed to retrieve user data from Google');
+        showErrorToast('Failed to retrieve user data from Google');
         return;
       }
 
@@ -91,13 +88,14 @@ const LoginScreen = ({ navigation }: Props) => {
         avatar: user.photo || null,
       };
 
-      console.log('📤 Sending to backend:', googleData);
 
       // Kirim data ke backend untuk cek email
       const response = await authService.googleLogin(googleData);
-      console.log('📥 Backend response:', response);
 
       if (response.success) {
+        // setelah login sukses, sebelum/sesudah navigasi
+        await notificationService.registerToken();
+
         navigation.replace('Main');
       } else {
         // Email tidak terdaftar
@@ -121,7 +119,7 @@ const LoginScreen = ({ navigation }: Props) => {
       } else if (error.code === statusCodes.IN_PROGRESS) {
         Alert.alert('Info', 'Sign in sedang dalam proses');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Play services tidak tersedia atau perlu diupdate');
+        showErrorToast('Play services tidak tersedia atau perlu diupdate');
       } else if (error.code === '12501') {
         console.log('ℹ️ Error 12501: User cancelled or configuration issue');
         Alert.alert(

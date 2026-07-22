@@ -146,7 +146,7 @@ function ScheduleScreen() {
       setAllSchedules(validSchedules);
     } catch (error: any) {
       console.error('Load data error:', error);
-      Alert.alert('Error', error.message || 'Gagal memuat data schedule');
+      showErrorToast(error.message || 'Gagal memuat data schedule');
     } finally {
       setLoading(false);
     }

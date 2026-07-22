@@ -9,13 +9,16 @@ class NotificationService {
    * Minta izin notifikasi (wajib di Android 13+ dan semua iOS)
    */
   async requestPermission(): Promise<boolean> {
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        return false;
+    if (Platform.OS === 'android') {
+      if (Platform.Version >= 33) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
       }
+
+      return true;
     }
 
     const authStatus = await messaging().requestPermission();
@@ -31,13 +34,22 @@ class NotificationService {
    */
   async registerToken(): Promise<void> {
     try {
+      console.log("REGISTER TOKEN DIPANGGIL");
+
       const hasPermission = await this.requestPermission();
+      
+      console.log("HAS PERMISSION =", hasPermission);
+
+
       if (!hasPermission) {
         console.log('Notification permission ditolak');
         return;
       }
 
       const token = await messaging().getToken();
+
+      console.log("FCM TOKEN =", token);
+      
       if (!token) return;
 
       const authToken = await authService.getToken();

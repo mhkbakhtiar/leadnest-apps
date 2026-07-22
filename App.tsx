@@ -8,6 +8,10 @@ import MainTabNavigator from './src/navigation/MainTabNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import { authService } from './src/services/authService';
 import notificationService from './src/services/notificationService';
+import Toast from 'react-native-toast-message';
+import { toastConfig } from './src/config/toastConfig';
+
+
 
 export type RootStackParamList = {
   Login: undefined;
@@ -30,32 +34,33 @@ function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    let unsubscribeForeground: (() => void) | undefined;
-    let unsubscribeTokenRefresh: (() => void) | undefined;
+    console.log("setupNotifications mulai");
+
+    let unsubscribeForeground;
+    let unsubscribeTokenRefresh;
 
     const setupNotifications = async () => {
-      await notificationService.registerToken();
+      try {
+        console.log("Sebelum registerToken");
 
-      unsubscribeForeground = notificationService.setupForegroundListener(
-        (title, body) => {
-          console.log('Notif masuk:', title, body);
-        }
-      );
+        await notificationService.registerToken();
 
-      notificationService.setupBackgroundOpenListener((data) => {
-        console.log('Data notif saat dibuka:', data);
-        // TODO: navigasi ke screen tertentu sesuai data, kalau perlu
-      });
+        console.log("Sesudah registerToken");
 
-      unsubscribeTokenRefresh = notificationService.setupTokenRefreshListener();
+        unsubscribeForeground =
+          notificationService.setupForegroundListener(() => {});
+
+        notificationService.setupBackgroundOpenListener(() => {});
+
+        unsubscribeTokenRefresh =
+          notificationService.setupTokenRefreshListener();
+
+      } catch (e) {
+        console.log("SETUP ERROR", e);
+      }
     };
 
     setupNotifications();
-
-    return () => {
-      unsubscribeForeground?.();
-      unsubscribeTokenRefresh?.();
-    };
   }, [isLoggedIn]);
 
   const checkLoginStatus = async () => {
@@ -106,6 +111,7 @@ function App() {
           <Stack.Screen name="Main" component={MainTabNavigator} />
         </Stack.Navigator>
       </NavigationContainer>
+      <Toast config={toastConfig} />
     </SafeAreaProvider>
   );
 }

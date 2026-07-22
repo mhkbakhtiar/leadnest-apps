@@ -54,7 +54,7 @@ const ProfileScreen = () => {
               });
             } catch (error) {
               console.error('Error logging out:', error);
-              Alert.alert('Error', 'Failed to logout');
+              showErrorToast('Failed to logout');
             }
           }
         },
