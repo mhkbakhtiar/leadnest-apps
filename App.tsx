@@ -7,6 +7,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import { authService } from './src/services/authService';
+import notificationService from './src/services/notificationService';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,6 +25,38 @@ function App() {
   useEffect(() => {
     checkLoginStatus();
   }, []);
+
+  // Setup notifikasi begitu user diketahui sudah login (baik dari cek awal maupun habis login manual)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let unsubscribeForeground: (() => void) | undefined;
+    let unsubscribeTokenRefresh: (() => void) | undefined;
+
+    const setupNotifications = async () => {
+      await notificationService.registerToken();
+
+      unsubscribeForeground = notificationService.setupForegroundListener(
+        (title, body) => {
+          console.log('Notif masuk:', title, body);
+        }
+      );
+
+      notificationService.setupBackgroundOpenListener((data) => {
+        console.log('Data notif saat dibuka:', data);
+        // TODO: navigasi ke screen tertentu sesuai data, kalau perlu
+      });
+
+      unsubscribeTokenRefresh = notificationService.setupTokenRefreshListener();
+    };
+
+    setupNotifications();
+
+    return () => {
+      unsubscribeForeground?.();
+      unsubscribeTokenRefresh?.();
+    };
+  }, [isLoggedIn]);
 
   const checkLoginStatus = async () => {
     try {

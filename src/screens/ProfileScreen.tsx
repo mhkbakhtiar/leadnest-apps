@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import authService, { User } from '../services/authService';
+import notificationService from '../services/notificationService';
 
 type RootStackParamList = {
   Login: undefined;
@@ -45,6 +46,7 @@ const ProfileScreen = () => {
           style: 'destructive', 
           onPress: async () => {
             try {
+              await notificationService.unregisterToken();
               await authService.logout();
               navigation.reset({
                 index: 0,
@@ -198,7 +200,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
+          <Text style={styles.versionText}>Version 1.0.1</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

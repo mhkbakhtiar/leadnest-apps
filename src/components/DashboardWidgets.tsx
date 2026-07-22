@@ -1,39 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import Svg, { Path, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { DashboardData } from '../services/dashboardService';
 
 const { width } = Dimensions.get('window');
 
 interface DashboardWidgetsProps {
   data: DashboardData;
+  unreadNotifCount?: number;
   onKonsumenPress?: (konsumenId: number) => void;
   onSchedulePress?: (scheduleId: number) => void;
+  onBellPress?: () => void;
 }
-
-const generateClosingTargetLabel = (startDateString: string) => {
-    if (!startDateString) return '';
-
-    const monthNames = [
-      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-      "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
-    ];
-
-    const start = new Date(startDateString);
-    const end = new Date(start);
-    end.setMonth(start.getMonth() + 3); // rentang 4 bulan
-
-    const startMonth = monthNames[start.getMonth()];
-    const endMonth = monthNames[end.getMonth()];
-    const year = start.getFullYear();
-
-    return `${startMonth}–${endMonth} ${year}`;
-  };
 
 export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
   data,
+  unreadNotifCount = 0,
   onKonsumenPress,
   onSchedulePress,
+  onBellPress,
 }) => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -48,16 +32,16 @@ export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{data.user.name}</Text>
-              <Text style={styles.userPoints}>
-                Target bulan ini 🎯
-              </Text>
+              <Text style={styles.userPoints}>Target bulan ini 🎯</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellIcon}>
+          <TouchableOpacity style={styles.bellIcon} onPress={onBellPress}>
             <Text style={styles.bellEmoji}>🔔</Text>
-            {data.today_schedule && data.today_schedule.length > 0 && (
+            {unreadNotifCount > 0 && (
               <View style={styles.notifBadge}>
-                <Text style={styles.notifText}>{data.today_schedule.length}</Text>
+                <Text style={styles.notifText}>
+                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -394,17 +378,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#D4AA00', // sebelumnya '#EF4444' (merah), diganti warna gold senada tema
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#165044', // border tipis biar nyatu sama header hijau, gak "ngambang"
   },
   notifText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#165044', // teks gelap di atas gold, kontras tapi tetap kalem
   },
   // 🎯 Target Cards Styles
   targetCardsContainer: {

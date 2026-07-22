@@ -1,24 +1,29 @@
 {
   "project_info": {
-    "project_id": "leadnest-apps"
+    "project_number": "777836844536",
+    "project_id": "leadnest-361d7",
+    "storage_bucket": "leadnest-361d7.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:777836844536:android:2fe9ac84c128fd3bf1320d",
         "android_client_info": {
           "package_name": "com.leadnest"
         }
       },
-      "oauth_client": [
+      "oauth_client": [],
+      "api_key": [
         {
-          "client_id": "154079047174-vjh742r8k65p8802ggrucjftjp58kl8f.apps.googleusercontent.com",
-          "client_type": 1 
-        },
-        {
-          "client_id": "154079047174-b4kicqnsra42mo2j7em1u2stppanhn6e.apps.googleusercontent.com",
-          "client_type": 3
+          "current_key": "AIzaSyAEGhwoUtP-x-tKtilj4TpN23gTRMHe_cQ"
         }
-      ]
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
-  ]
+  ],
+  "configuration_version": "1"
 }
