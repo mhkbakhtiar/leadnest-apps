@@ -1,6 +1,8 @@
 /* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
+import { showSuccessToast, showErrorToast } from '../utils/toast';
+import { useFocusEffect } from '@react-navigation/native';
 import { 
   View, 
   Text, 
@@ -20,6 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import konsumenService, { Konsumen, KonsumenStatistics } from '../services/konsumenService';
 import followupService, { Followup, CreateFollowupData } from '../services/followupService';
 import authService from '../services/authService';
+
 
 import _ from 'lodash';
 
@@ -254,7 +257,7 @@ const capitalizeFirst = (text: string) => {
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
-const KonsumenScreen = () => {
+const KonsumenScreen = ({ navigation }: any) => {
   const [konsumenList, setKonsumenList] = useState<Konsumen[]>([]);
   const [statistics, setStatistics] = useState<KonsumenStatistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -339,6 +342,12 @@ const KonsumenScreen = () => {
     fetchData();
     fetchMitras();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
@@ -588,7 +597,7 @@ const KonsumenScreen = () => {
           onPress: async () => {
             try {
               await konsumenService.deleteKonsumen(id);
-              showSuccessToast 'Konsumen berhasil dihapus');
+              showSuccessToast( 'Konsumen berhasil dihapus');
               fetchData();
             } catch (error: any) {
               showErrorToast(error.message);
@@ -884,14 +893,6 @@ const KonsumenScreen = () => {
     </Modal>
   );
 
-  if (loading && !searchQuery) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#312a7a" />
-      </View>
-    );
-  }
-
   const getInitials = (name = '') => {
     if (!name) return 'U'; // default User
 
@@ -1106,7 +1107,11 @@ const KonsumenScreen = () => {
         }
 
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <View style={{ paddingVertical: 60, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#312a7a" />
+            </View>
+          ) : (
             <View style={newStyles.emptyState}>
               <Text style={newStyles.emptyStateTitle}>Tidak Ada Data</Text>
               <Text style={newStyles.emptyStateText}>
@@ -1117,7 +1122,7 @@ const KonsumenScreen = () => {
                   : 'Belum ada data konsumen. Tambahkan konsumen baru untuk memulai.'}
               </Text>
             </View>
-          ) : null
+          )
         }
 
         // Footer loading untuk infinite scroll
@@ -1156,6 +1161,7 @@ const KonsumenScreen = () => {
       <DetailKonsumenModal
         visible={showDetailModal}
         konsumen={selectedKonsumen}
+        navigation={navigation}
         onClose={() => {
           setShowDetailModal(false);
           setSelectedKonsumen(null);
@@ -1302,7 +1308,7 @@ const AddKonsumenModal = ({ visible, onClose, onSuccess }: any) => {
     try {
       setSaving(true);
       await konsumenService.createKonsumen(formData); // Will include mitra_id
-      showSuccessToast 'Konsumen berhasil ditambahkan');
+      showSuccessToast( 'Konsumen berhasil ditambahkan');
       onSuccess();
     } catch (error: any) {
       showErrorToast(error.message);
@@ -1847,7 +1853,7 @@ const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any) => {
     try {
       setSaving(true);
       await konsumenService.updateKonsumen(konsumen.id, formData); // Will include mitra_id
-      showSuccessToast 'Konsumen berhasil diupdate');
+      showSuccessToast( 'Konsumen berhasil diupdate');
       onSuccess();
     } catch (error: any) {
       showErrorToast(error.message);
@@ -2237,13 +2243,21 @@ const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any) => {
   );
 };
 
-const DetailKonsumenModal = ({ visible, konsumen, onClose, onEdit, onDelete, onRefresh }: any) => {
+const DetailKonsumenModal = ({ visible, konsumen, navigation, onClose, onEdit, onDelete, onRefresh }: any) => {
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [loadingFollowups, setLoadingFollowups] = useState(false);
   const [showAddFollowup, setShowAddFollowup] = useState(false);
   const [showEditFollowup, setShowEditFollowup] = useState(false);
   const [selectedFollowup, setSelectedFollowup] = useState<Followup | null>(null);
   const [expandedFollowups, setExpandedFollowups] = useState<{ [key: string]: boolean }>({});
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (konsumen && visible) {
+        fetchFollowups();
+      }
+    }, [konsumen, visible])
+  );
 
   useEffect(() => {
     if (konsumen && visible) {
@@ -2523,10 +2537,7 @@ const DetailKonsumenModal = ({ visible, konsumen, onClose, onEdit, onDelete, onR
 
                             <TouchableOpacity
                               style={stylesDetail.followupEditBtn}
-                              onPress={() => {
-                                setSelectedFollowup(followup);
-                                setShowEditFollowup(true);
-                              }}
+                              onPress={() => navigation.navigate('EditFollowupScreen', { followup })}
                             >
                               <Text style={stylesDetail.followupEditText}>Edit</Text>
                             </TouchableOpacity>
@@ -2543,7 +2554,7 @@ const DetailKonsumenModal = ({ visible, konsumen, onClose, onEdit, onDelete, onR
           <View style={stylesDetail.modalFooter}>
             <TouchableOpacity 
               style={[stylesDetail.button, stylesDetail.buttonSecondary]}
-              onPress={() => setShowAddFollowup(true)}
+              onPress={() => navigation.navigate('AddFollowupScreen', { konsumenId: konsumen.id })}
             >
               <Text style={stylesDetail.buttonSecondaryText}>+ Follow Up</Text>
             </TouchableOpacity>
@@ -3161,7 +3172,7 @@ const AddFollowupModal = ({ visible, konsumenId, onClose, onSuccess }: any) => {
       setSaving(true);
       await updateKonsumenContact();
       await followupService.createFollowup(formData);
-      showSuccessToast 'Follow up berhasil ditambahkan');
+      showSuccessToast( 'Follow up berhasil ditambahkan');
       onSuccess();
     } catch (error: any) {
       showErrorToast(error.message);
@@ -3191,16 +3202,35 @@ const AddFollowupModal = ({ visible, konsumenId, onClose, onSuccess }: any) => {
         return (
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>WhatsApp Konsumen</Text>
-            <TextInput
-              style={styles.input}
-              value={editableContact.whatsapp}
-              onChangeText={(text) => 
-                setEditableContact({ ...editableContact, whatsapp: text })
-              }
-              placeholder="08xxxxxxxxxx"
-              placeholderTextColor="#6b7280"
-              keyboardType="phone-pad"
-            />
+
+            <View style={styles.phoneInputContainer}>
+              <Text style={styles.phonePrefix}>+62</Text>
+
+              <TextInput
+                style={styles.phoneInput}
+                value={editableContact.whatsapp}
+                onChangeText={(text) => {
+                  let cleaned = text.replace(/\D/g, ''); // Buang selain angka
+
+                  if (cleaned.startsWith('0')) {
+                    cleaned = cleaned.slice(1);
+                  }
+
+                  if (cleaned.startsWith('62')) {
+                    cleaned = cleaned.slice(2);
+                  }
+
+                  setEditableContact({
+                    ...editableContact,
+                    whatsapp: cleaned,
+                  });
+                }}
+                placeholder="85xxxxxxxxxx"
+                placeholderTextColor="#6b7280"
+                keyboardType="phone-pad"
+              />
+            </View>
+
             <Text style={styles.inputHint}>
               Nomor ini akan tersimpan ke data konsumen
             </Text>
@@ -3861,7 +3891,7 @@ const EditFollowupModal = ({ visible, followup, onClose, onSuccess }: any) => {
       // Update konsumen contact terlebih dahulu (sama seperti Add Modal)
       await updateKonsumenContact();
       await followupService.updateFollowup(followup.id, formData);
-      showSuccessToast 'Follow up berhasil diupdate');
+      showSuccessToast( 'Follow up berhasil diupdate');
       onSuccess();
     } catch (error: any) {
       showErrorToast(error.message);
@@ -3891,16 +3921,35 @@ const EditFollowupModal = ({ visible, followup, onClose, onSuccess }: any) => {
         return (
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>WhatsApp Konsumen</Text>
-            <TextInput
-              style={styles.input}
-              value={editableContact.whatsapp}
-              onChangeText={(text) => 
-                setEditableContact({ ...editableContact, whatsapp: text })
-              }
-              placeholder="08xxxxxxxxxx"
-              placeholderTextColor="#6b7280"
-              keyboardType="phone-pad"
-            />
+
+            <View style={styles.phoneInputContainer}>
+              <Text style={styles.phonePrefix}>+62</Text>
+
+              <TextInput
+                style={styles.phoneInput}
+                value={editableContact.whatsapp}
+                onChangeText={(text) => {
+                  let cleaned = text.replace(/\D/g, ''); // Buang selain angka
+
+                  if (cleaned.startsWith('0')) {
+                    cleaned = cleaned.slice(1);
+                  }
+
+                  if (cleaned.startsWith('62')) {
+                    cleaned = cleaned.slice(2);
+                  }
+
+                  setEditableContact({
+                    ...editableContact,
+                    whatsapp: cleaned,
+                  });
+                }}
+                placeholder="85xxxxxxxxxx"
+                placeholderTextColor="#6b7280"
+                keyboardType="phone-pad"
+              />
+            </View>
+
             <Text style={styles.inputHint}>
               Nomor ini akan tersimpan ke data konsumen
             </Text>
@@ -5007,6 +5056,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    color: '#333',
   },
   textArea: {
     minHeight: 80,

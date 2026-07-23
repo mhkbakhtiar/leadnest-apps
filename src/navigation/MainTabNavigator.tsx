@@ -12,7 +12,7 @@ import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
 
-const MainTabNavigator = () => {
+const MainTabNavigator = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Home');
 
   const renderScreen = () => {
@@ -20,7 +20,7 @@ const MainTabNavigator = () => {
       case 'Home':
         return <DashboardScreen />;
       case 'Konsumen':
-        return <KonsumenScreen />;
+        return <KonsumenScreen navigation={navigation} />;
       case 'Report':
         return <ReportScreen />;
       case 'Profile':

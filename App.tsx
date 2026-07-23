@@ -10,12 +10,17 @@ import { authService } from './src/services/authService';
 import notificationService from './src/services/notificationService';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/config/toastConfig';
+import AddFollowupScreen from './src/screens/AddFollowupScreen';
+import EditFollowupScreen from './src/screens/EditFollowupScreen';
+import { Followup } from './src/services/followupService';
 
 
 
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
+  AddFollowupScreen: { konsumenId: number };
+  EditFollowupScreen: { followup: Followup };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -109,6 +114,16 @@ function App() {
           }}>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen
+            name="AddFollowupScreen"
+            component={AddFollowupScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="EditFollowupScreen"
+            component={EditFollowupScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast config={toastConfig} />
