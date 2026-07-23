@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   calendarHeader: {
     backgroundColor: '#FFFFFF',
     paddingTop: 16,
-    paddingBottom: 12,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },

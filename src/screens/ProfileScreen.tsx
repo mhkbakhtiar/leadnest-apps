@@ -201,7 +201,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>Version 1.0.2</Text>
+          <Text style={styles.versionText}>Version 1.0.3</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

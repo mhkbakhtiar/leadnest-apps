@@ -12,7 +12,9 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/config/toastConfig';
 import AddFollowupScreen from './src/screens/AddFollowupScreen';
 import EditFollowupScreen from './src/screens/EditFollowupScreen';
+import DetailKonsumenScreen from './src/screens/DetailKonsumenScreen';
 import { Followup } from './src/services/followupService';
+import { Konsumen } from './src/services/konsumenService';
 
 
 
@@ -21,6 +23,7 @@ export type RootStackParamList = {
   Main: undefined;
   AddFollowupScreen: { konsumenId: number };
   EditFollowupScreen: { followup: Followup };
+  DetailKonsumenScreen: { konsumenId: number; konsumen?: Konsumen };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -122,6 +125,11 @@ function App() {
           <Stack.Screen
             name="EditFollowupScreen"
             component={EditFollowupScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="DetailKonsumenScreen"
+            component={DetailKonsumenScreen}
             options={{ animation: 'slide_from_right' }}
           />
         </Stack.Navigator>
