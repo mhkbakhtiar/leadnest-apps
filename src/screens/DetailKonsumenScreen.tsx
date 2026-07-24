@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   button: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  buttonPrimary: { backgroundColor: '#312a7a' },
+  buttonPrimary: { backgroundColor: '#165044' },
   buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   buttonSecondary: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e0e0e0' },
   buttonSecondaryText: { color: '#666', fontSize: 16, fontWeight: '600' },

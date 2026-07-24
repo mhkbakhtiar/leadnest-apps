@@ -66,6 +66,14 @@ export interface DashboardData {
     status: string;
     status_color: string;
   }>;
+  mitra_stats?: Array<{
+    name: string;
+    total_konsumen: number;
+    total_followup: number;
+    total_closing: number;
+    closing_month: number;
+    conversion_rate: number;
+  }>;
 }
 
 export interface QuickStats {

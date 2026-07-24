@@ -4,20 +4,32 @@ import { DashboardData } from '../services/dashboardService';
 
 const { width } = Dimensions.get('window');
 
+interface MitraStat {
+  name: string;
+  total_konsumen: number;
+  total_followup: number;
+  total_closing: number;
+  conversion_rate: number;
+}
+
 interface DashboardWidgetsProps {
   data: DashboardData;
   unreadNotifCount?: number;
+  mitraStats?: MitraStat[];
   onKonsumenPress?: (konsumenId: number) => void;
   onSchedulePress?: (scheduleId: number) => void;
   onBellPress?: () => void;
+  onSeeReportPress?: () => void;
 }
 
 export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
   data,
   unreadNotifCount = 0,
+  mitraStats = [],
   onKonsumenPress,
   onSchedulePress,
   onBellPress,
+  onSeeReportPress,
 }) => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -176,13 +188,65 @@ export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
           </View>
         </View>
 
+        {/* Performa per Proyek */}
+        {mitraStats.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Performa per Proyek</Text>
+              
+            </View>
+            <View style={styles.mitraContainer}>
+              {mitraStats.slice(0, 2).map((m, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.mitraCard,
+                    idx === Math.min(mitraStats.length, 2) - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <Text style={styles.mitraName}>{m.name}</Text>
+                  <View style={styles.mitraStatsRow}>
+                    <View style={styles.mitraStatItem}>
+                      <Text style={styles.mitraStatLabel}>Konsumen</Text>
+                      <Text style={styles.mitraStatValue}>{m.total_konsumen}</Text>
+                    </View>
+                    <View style={styles.mitraStatItem}>
+                      <Text style={styles.mitraStatLabel}>Follow-up</Text>
+                      <Text style={styles.mitraStatValue}>{m.total_followup}</Text>
+                    </View>
+                    <View style={styles.mitraStatItem}>
+                      <Text style={styles.mitraStatLabel}>Closing</Text>
+                      <Text style={[styles.mitraStatValue, { color: '#10B981' }]}>{m.total_closing}</Text>
+                    </View>
+                    <View style={styles.mitraStatItem}>
+                      <Text style={styles.mitraStatLabel}>Conversion</Text>
+                      <Text
+                        style={[
+                          styles.mitraStatValue,
+                          {
+                            color:
+                              (Number(m.conversion_rate) || 0) >= 20
+                                ? '#10B981'
+                                : (Number(m.conversion_rate) || 0) >= 10
+                                ? '#D4AA00'
+                                : '#EF4444',
+                          },
+                        ]}
+                      >
+                        {m.conversion_rate ?? 0}%
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Today's Follow-up */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Follow-up Hari Ini</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>Lihat Semua →</Text>
-            </TouchableOpacity>
           </View>
           {data.top_followup_needed && data.top_followup_needed.length > 0 ? (
             <View style={styles.followupContainer}>
@@ -237,9 +301,6 @@ export const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Jadwal Hari Ini</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAll}>Lihat Semua →</Text>
-              </TouchableOpacity>
             </View>
             <View style={styles.scheduleContainer}>
               {data.today_schedule.slice(0, 3).map((schedule) => (
@@ -321,8 +382,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#165044',
     paddingTop: 16,
     paddingBottom: 24,
-    // borderBottomLeftRadius: 24,
-    // borderBottomRightRadius: 24,
   },
   headerTop: {
     flexDirection: 'row',
@@ -378,21 +437,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#D4AA00', // sebelumnya '#EF4444' (merah), diganti warna gold senada tema
+    backgroundColor: '#D4AA00',
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#165044', // border tipis biar nyatu sama header hijau, gak "ngambang"
+    borderColor: '#165044',
   },
   notifText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#165044', // teks gelap di atas gold, kontras tapi tetap kalem
+    color: '#165044',
   },
-  // 🎯 Target Cards Styles
   targetCardsContainer: {
     paddingHorizontal: 20,
     gap: 12,
@@ -402,7 +460,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginRight: 12,
-    
   },
   targetCardPrimary: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -468,38 +525,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
-  },
-  quickActionsContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  quickActionsScroll: {
-    paddingHorizontal: 16,
-  },
-  quickAction: {
-    alignItems: 'center',
-    marginRight: 20,
-    width: 70,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#F8F9FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionEmoji: {
-    fontSize: 24,
-  },
-  quickActionLabel: {
-    fontSize: 11,
-    color: '#374151',
-    textAlign: 'center',
-    fontWeight: '500',
   },
   content: {
     padding: 16,
@@ -603,6 +628,45 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mitraContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  mitraCard: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  mitraName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  mitraStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  mitraStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  mitraStatLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  mitraStatValue: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#111827',
   },

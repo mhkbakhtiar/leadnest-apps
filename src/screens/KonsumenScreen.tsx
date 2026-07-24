@@ -1943,14 +1943,36 @@ export const EditKonsumenModal = ({ visible, konsumen, onClose, onSuccess }: any
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>WhatsApp</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.whatsapp}
-                  onChangeText={(text) => setFormData({ ...formData, whatsapp: text })}
-                  placeholder="08xxxxxxxxxx"
-                  placeholderTextColor="#6b7280"
-                  keyboardType="phone-pad"
-                />
+
+                <View style={styles.phoneInputContainer}>
+                  <Text style={styles.phonePrefix}>+62</Text>
+
+                  <TextInput
+                    style={styles.phoneInput}
+                    value={formData.whatsapp}
+                    onChangeText={(text) => {
+                      let cleaned = text.replace(/\D/g, '');
+
+                      // Jika user mengetik 0 di depan
+                      if (cleaned.startsWith('0')) {
+                        cleaned = cleaned.slice(1);
+                      }
+
+                      // Jika user paste nomor yang diawali 62
+                      if (cleaned.startsWith('62')) {
+                        cleaned = cleaned.slice(2);
+                      }
+
+                      setFormData({
+                        ...formData,
+                        whatsapp: cleaned,
+                      });
+                    }}
+                    placeholder="85xxxxxxxxxx"
+                    placeholderTextColor="#6b7280"
+                    keyboardType="phone-pad"
+                  />
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -2457,7 +2479,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 11,
     borderRadius: 6,
-    backgroundColor: '#312a7a',
+    backgroundColor: '#165044',
     alignItems: 'center',
   },
   actionButtonPrimaryText: {
@@ -2851,7 +2873,7 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#312a7a',
+    backgroundColor: '#165044',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -2889,7 +2911,7 @@ export const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#312a7a',
+    color: '#165044',
   },
   modalClose: {
     fontSize: 24,
@@ -2939,7 +2961,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonPrimary: {
-    backgroundColor: '#312a7a',
+    backgroundColor: '#165044',
   },
   buttonPrimaryText: {
     color: '#fff',

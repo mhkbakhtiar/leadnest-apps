@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DashboardWidgets } from '../components/DashboardWidgets';
 import dashboardService, { DashboardData } from '../services/dashboardService';
 import notificationApiService from '../services/notificationApiService';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 import NotificationsModal from './NotificationsModal';
 
 type RootStackParamList = {
@@ -66,11 +67,7 @@ const DashboardScreen = () => {
   };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#165044" />
-      </View>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!dashboardData) {
@@ -87,6 +84,7 @@ const DashboardScreen = () => {
           unreadNotifCount={unreadCount}
           onKonsumenPress={handleKelolakonsumen}
           onSchedulePress={handleSchedulePress}
+          mitraStats={dashboardData.mitra_stats}
           onBellPress={() => setNotifModalVisible(true)}
         />
       </ScrollView>

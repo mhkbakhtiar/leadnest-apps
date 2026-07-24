@@ -5,6 +5,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import reportService, { DashboardReport } from '../services/reportService';
+import ReportSkeleton from '../components/ReportSkeleton';
+
 
 const { width } = Dimensions.get('window');
 const chartWidth = width - 32;
@@ -54,14 +56,7 @@ const ReportScreen: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#165044" />
-          <Text style={styles.loadingText}>Memuat laporan...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <ReportSkeleton />;
   }
 
   if (!report) {

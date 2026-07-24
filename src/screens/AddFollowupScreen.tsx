@@ -264,7 +264,7 @@ const AddFollowupScreen = () => {
 
   const renderContactField = () => {
     if (loadingKonsumen) {
-      return <ActivityIndicator size="small" color="#312a7a" />;
+      return <ActivityIndicator size="small" color="#165044" />;
     }
 
     switch (formData.type) {
@@ -414,7 +414,7 @@ const AddFollowupScreen = () => {
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Keterangan Followup *</Text>
           {loadingOptions ? (
-            <ActivityIndicator size="small" color="#312a7a" />
+            <ActivityIndicator size="small" color="#165044" />
           ) : (
             <View style={styles.dropdownContainer}>
               {followupNotes.map((note) => (
@@ -447,7 +447,7 @@ const AddFollowupScreen = () => {
               )}
             </Text>
             {loadingOptions ? (
-              <ActivityIndicator size="small" color="#312a7a" />
+              <ActivityIndicator size="small" color="#165044" />
             ) : (
               <View style={styles.dropdownContainer}>
                 {konsumenResponses.map((response) => {
@@ -630,8 +630,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   backButton: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 28, color: '#312a7a', fontWeight: '400' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#312a7a' },
+  backIcon: { fontSize: 28, color: '#165044', fontWeight: '400' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#165044' },
   body: { flex: 1, padding: 20 },
   footer: {
     flexDirection: 'row',
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   button: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  buttonPrimary: { backgroundColor: '#312a7a' },
+  buttonPrimary: { backgroundColor: '#165044' },
   buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   buttonSecondary: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e0e0e0' },
   buttonSecondaryText: { color: '#666', fontSize: 16, fontWeight: '600' },
@@ -669,14 +669,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     minWidth: '48%',
   },
-  typeOptionNewActive: { backgroundColor: '#312a7a', borderColor: '#312a7a' },
+  typeOptionNewActive: { backgroundColor: '#165044', borderColor: '#165044' },
   typeOptionNewText: { fontSize: 13, color: '#374151', textAlign: 'center', fontWeight: '500' },
   typeOptionNewTextActive: { color: '#fff' },
   dropdownContainer: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, backgroundColor: '#fff' },
   dropdownOption: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   dropdownOptionActive: { backgroundColor: '#f9fafb' },
   dropdownOptionText: { fontSize: 13, color: '#374151' },
-  dropdownOptionTextActive: { color: '#312a7a', fontWeight: '500' },
+  dropdownOptionTextActive: { color: '#165044', fontWeight: '500' },
   dropdownOptionCheckbox: { flexDirection: 'row', alignItems: 'center' },
   checkbox: {
     width: 20,
@@ -688,12 +688,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxActive: { backgroundColor: '#312a7a', borderColor: '#312a7a' },
+  checkboxActive: { backgroundColor: '#165044', borderColor: '#165044' },
   checkboxIcon: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  selectedCount: { color: '#312a7a', fontSize: 12, fontWeight: '600' },
+  selectedCount: { color: '#165044', fontSize: 12, fontWeight: '600' },
   selectedResponsesContainer: { marginTop: 8, padding: 12, backgroundColor: '#f3f4f6', borderRadius: 8 },
   selectedResponsesLabel: { fontSize: 12, color: '#6b7280', fontWeight: '600', marginBottom: 4 },
-  selectedResponsesText: { fontSize: 13, color: '#312a7a', lineHeight: 18 },
+  selectedResponsesText: { fontSize: 13, color: '#165044', lineHeight: 18 },
   statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statusOption: {
     paddingHorizontal: 14,
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   statusOptionText: { fontSize: 12, color: '#374151', fontWeight: '500' },
   statusOptionTextActive: { color: '#fff', fontWeight: '600' },
   datePickerButton: {
-    backgroundColor: '#312a7a',
+    backgroundColor: '#165044',
     paddingVertical: 11,
     paddingHorizontal: 16,
     borderRadius: 6,
